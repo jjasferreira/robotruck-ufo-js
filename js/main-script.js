@@ -5,7 +5,7 @@
 /* GLOBAL VARIABLES */
 //////////////////////
 
-let scene, renderer;
+let scene, renderer, controls; //todo remove stats and controls
 // Cameras
 let camera, frontCamera, sideCamera, topCamera, orthoCamera, perspCamera;
 let cameraStatus = {front: true, side: false, top: false, ortho: false, persp: false};
@@ -19,6 +19,10 @@ let rotationSpeed = 0.008;
 let headPivotRotating = false;
 let headPivotAngle = 0;
 
+//trailer components that are also parent objects
+let trailerBody, underPlate, wheelRig, couplerBody
+let couplerMoving = false;
+
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -29,6 +33,7 @@ function createScene(){
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xF0EAD6);
     createRoboTruck();
+    createTrailer();
     // TODO: remove the axes helper later
     const axesHelper = new THREE.AxesHelper(300);
     axesHelper.renderOrder = 1; // Set a higher render order for the axes helper
@@ -175,6 +180,42 @@ function createRoboTruck(){
 
 }
 
+/////////////
+/* TRAILER */
+/////////////
+
+/*function createCube(w, h, d, color, rotAxis, parent, x = 0, y = 0, z = 0){
+    const geometry = new THREE.BoxGeometry(w, h, d);
+    const material = new THREE.MeshBasicMaterial({ color: color, wireframe: true });
+    const cube = new THREE.Mesh(geometry, material);
+    if (rotAxis !== null)
+        cube.rotateOnAxis(rotAxis, Math.PI / 2);
+    cube.position.set(x, y, z);
+    parent.add(cube);
+    return cube;
+}*/
+
+function createTrailer() {
+    const bodyW = 240, bodyH = 280, bodyD = 1160;
+    trailerBody = createCube(bodyW, bodyH, bodyD, 0x035f53, null, scene, 300, 0, -1080);
+
+    const plateW = 240, plateH = 40, plateD = 760;
+    // color is light gray hex = 0x808080
+    plate = createCube(plateW, plateH, plateD, 0x808080, null, trailerBody, 0, -bodyH/2, -bodyD/2 + plateD/2);
+
+    const wheelRigW = 240, wheelRigH = 80, wheelRigD = 400;
+    // color is dark gray hex = 0x 858585
+    wheelRig = createCube(wheelRigW, wheelRigH, wheelRigD, 0x2222222, null, plate, 0, -plateH/2, -plateD/2 + wheelRigD/2);
+
+    const wheelR = 40, wheelH = 40;
+    const rotAxis = new THREE.Vector3(0, 0, 1);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, -wheelH/2-wheelRigW/2, -wheelRigH/2, -wheelRigD/4);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, wheelH/2+wheelRigW/2, -wheelRigH/2, -wheelRigD/4);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, -wheelH/2-wheelRigW/2, -wheelRigH/2, wheelRigD/4);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, wheelH/2+wheelRigW/2, -wheelRigH/2, wheelRigD/4);
+
+}
+
 //////////////////////
 /* CHECK COLLISIONS */
 //////////////////////
@@ -230,6 +271,8 @@ function init() {
     createOrthographicCamera();
     createPerspectiveCamera();
     camera = frontCamera;
+
+    controls = new THREE.OrbitControls( camera, renderer.domElement ); // TODO remove
 
     render();
 
@@ -323,7 +366,40 @@ function onKeyDown(e) {
             if (headPivotAngle > 0 && !headPivotRotating)
                 rotateHeadPivot(-rotationSpeed);
             break;
+        /* Trailer movement (arrow keys - left, right, down, up)
+        case 37: // left arrow
+            if (trailerOffset < 80 && !trailerMoving)
+                moveTrailer("x", movementSpeed);
+            break;
+        case 39: // right arrow
+            if (trailerOffset > 0 && !trailerMoving)
+                moveTrailer("x", -movementSpeed);
+            break;
+        case 40: // down arrow
+            if (trailerOffset < 80 && !trailerMoving)
+                moveTrailer("z", movementSpeed);
+            break;
+        case 38: // up arrow
+            if (trailerOffset > 0 && !trailerMoving)
+                moveTrailer("z", -movementSpeed);
+            break;
+         */
     }
+    /*
+    function moveTrailer(axis, speed){
+        trailerMoving = true;
+        const target = speed > 0 ? 80 : 0;
+        if ((speed > 0 && trailerOffset + speed <= target) || (speed < 0 && trailerOffset + speed >= target)) {
+            trailer.position[axis] += speed;
+            trailerOffset += speed;
+            requestAnimationFrame(() => moveTrailer(axis, speed));
+        } else {
+            trailer.position[axis] += target - trailerOffset;
+            trailerOffset = target;
+            trailerMoving = false;
+        }
+    }
+    */
 
     function moveArms(speed){
         armsMoving = true;
