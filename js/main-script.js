@@ -39,7 +39,7 @@ function createScene(){
 function createFrontCamera(){
     'use strict';
 
-    frontCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+    frontCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 5000);
     frontCamera.position.x = 0;
     frontCamera.position.y = 0;
     frontCamera.position.z = 500;
@@ -49,7 +49,7 @@ function createFrontCamera(){
 function createSideCamera() {
     'use strict';
 
-    sideCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+    sideCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 5000);
     sideCamera.position.x = 500;
     sideCamera.position.y = 0;
     sideCamera.position.z = 0;
@@ -59,7 +59,7 @@ function createSideCamera() {
 function createTopCamera(){
     'use strict';
 
-    topCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+    topCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 5000);
     topCamera.position.x = 0;
     topCamera.position.y = 500;
     topCamera.position.z = 0;
@@ -69,7 +69,7 @@ function createTopCamera(){
 function createOrthographicCamera(){
     'use strict';
 
-    orthoCamera = new THREE.OrthographicCamera(-500, 500, 500, -500, 1, 1000);
+    orthoCamera = new THREE.OrthographicCamera(-500, 500, 500, -500, 1, 5000);
     orthoCamera.position.x = 500;
     orthoCamera.position.y = 500;
     orthoCamera.position.z = 500;
@@ -79,9 +79,9 @@ function createOrthographicCamera(){
 function createPerspectiveCamera(){
     'use strict';
 
-    perspCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
-    perspCamera.position.x = 500; // TODO: x, y and z can be any number really
-    perspCamera.position.y = 500;
+    perspCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 5000);
+    perspCamera.position.x = 400; // TODO: x, y and z can be any number really
+    perspCamera.position.y = 300;
     perspCamera.position.z = 500;
     perspCamera.lookAt(scene.position);
 }
@@ -254,6 +254,14 @@ function onKeyDown(e) {
         case 53: // 5
             cameraStatus = {front: false, side: false, top: false, ortho: false, persp: true};
             camera = perspCamera;
+            break;
+        // Visual Representation Controls (key 6)
+        case 54: // 6
+            // TODO: should objects be instantiated with wireframe or not?
+            scene.traverse(function (node) {
+                if (node instanceof THREE.Mesh)
+                    node.material.wireframe = !node.material.wireframe;
+            });
             break;
         // Rotation Controls (keys R, F)
         case 82: // R
