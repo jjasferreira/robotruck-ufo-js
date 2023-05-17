@@ -11,10 +11,13 @@ let camera, frontCamera, sideCamera, topCamera, orthoCamera, perspCamera;
 let cameraStatus = {front: true, side: false, top: false, ortho: false, persp: false};
 // RoboTruck components that are also parent objects
 let torso, headPivot, head, uLeftArm, uRightArm;
-// Rotation
+// Movements and Rotations
+let movementSpeed = 0.2;
+let armsMoving = false;
+let armsOffset = 0;
 let rotationSpeed = 0.008;
-let isRotationInProgress = false;
-let headPivotState = 0;
+let headPivotRotating = false;
+let headPivotAngle = 0;
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -39,7 +42,7 @@ function createScene(){
 function createFrontCamera(){
     'use strict';
 
-    frontCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 5000);
+    frontCamera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 5000);
     frontCamera.position.x = 0;
     frontCamera.position.y = 0;
     frontCamera.position.z = 500;
@@ -49,7 +52,7 @@ function createFrontCamera(){
 function createSideCamera() {
     'use strict';
 
-    sideCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 5000);
+    sideCamera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 5000);
     sideCamera.position.x = 500;
     sideCamera.position.y = 0;
     sideCamera.position.z = 0;
@@ -59,7 +62,7 @@ function createSideCamera() {
 function createTopCamera(){
     'use strict';
 
-    topCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 5000);
+    topCamera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 5000);
     topCamera.position.x = 0;
     topCamera.position.y = 500;
     topCamera.position.z = 0;
@@ -79,7 +82,7 @@ function createOrthographicCamera(){
 function createPerspectiveCamera(){
     'use strict';
 
-    perspCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 5000);
+    perspCamera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 5000);
     perspCamera.position.x = 400; // TODO: x, y and z can be any number really
     perspCamera.position.y = 300;
     perspCamera.position.z = 500;
@@ -110,6 +113,16 @@ function createCube(w, h, d, color, parent, x = 0, y = 0, z = 0){
     return cube;
 }
 
+function createCylinder(rt, rb, h, color, parent, x = 0, y = 0, z = 0){
+    // TODO: should we do CylinderGeometry(rt, rb, h, 32) to make it look smoother?
+    const geometry = new THREE.CylinderGeometry(rt, rb, h);
+    const material = new THREE.MeshBasicMaterial({ color: color, wireframe: true });
+    const cylinder = new THREE.Mesh(geometry, material);
+    cylinder.position.set(x, y, z);
+    parent.add(cylinder);
+    return cylinder;
+}
+
 function createRoboTruck(){
 
     // Torso
@@ -132,10 +145,16 @@ function createRoboTruck(){
     const uArmW = 80, uArmH = 160, uArmD = 80;
     uLeftArm = createCube(uArmW, uArmH, uArmD, 0x035f53, torso, -uArmW/2-torsoW/2, 0, -uArmD/2-torsoD/2);
     uRightArm = createCube(uArmW, uArmH, uArmD, 0x035f53, torso, uArmW/2+torsoW/2, 0, -uArmD/2-torsoD/2);
+    // Exhaust Pipes
+    const pipeR = 10, pipeH = 120;
+    createCylinder(pipeR, pipeR, pipeH, 0x808080, uLeftArm, -pipeR-uArmW/2, 3*uArmH/8, pipeR-uArmD/2);
+    createCylinder(pipeR, pipeR, pipeH, 0x808080, uRightArm, pipeR+uArmW/2, 3*uArmH/8, pipeR-uArmD/2);
     // Lower Arms
     const lArmW = 80, lArmH = 80, lArmD = 240;
     createCube(lArmW, lArmH, lArmD, 0xffae42, uLeftArm, 0, -lArmH/2-uArmH/2, lArmD/2-uArmD/2);
     createCube(lArmW, lArmH, lArmD, 0xffae42, uRightArm, 0, -lArmH/2-uArmH/2, lArmD/2-uArmD/2);
+    // Abdomen
+    // TODO
 }
 
 //////////////////////
@@ -263,30 +282,59 @@ function onKeyDown(e) {
                     node.material.wireframe = !node.material.wireframe;
             });
             break;
-        // Rotation Controls (keys R, F)
+        // Arms Movement Controls (keys E, D)
+        case 69: // E
+        case 101: // e
+            if (armsOffset < 80 && !armsMoving)
+                moveArms(movementSpeed);
+            break;
+        case 68: // D
+        case 100: // d
+            if (armsOffset > 0 && !armsMoving)
+                moveArms(-movementSpeed);
+            break;
+        // Head Rotation Controls (keys R, F)
         case 82: // R
-            if (headPivotState < Math.PI && !isRotationInProgress)
+        case 114: // r
+            if (headPivotAngle < Math.PI && !headPivotRotating)
                 rotateHeadPivot(rotationSpeed);
             break;
         case 70: // F
-            if (headPivotState > 0 && !isRotationInProgress)
+        case 102: // f
+            if (headPivotAngle > 0 && !headPivotRotating)
                 rotateHeadPivot(-rotationSpeed);
             break;
     }
 
+    function moveArms(speed){
+        armsMoving = true;
+        const target = speed > 0 ? 80 : 0;
+        if ((speed > 0 && armsOffset + speed <= target) || (speed < 0 && armsOffset + speed >= target)) {
+            uLeftArm.position.x += speed;
+            uRightArm.position.x -= speed;
+            armsOffset += speed;
+            requestAnimationFrame(() => moveArms(speed));
+        } else {
+            uLeftArm.position.x += target - armsOffset;
+            uRightArm.position.x -= target - armsOffset;
+            armsOffset = target;
+            armsMoving = false;
+        }
+    }
+
     // TODO: is this function ok?
-    function rotateHeadPivot(speed) {
-        isRotationInProgress = true;
+    function rotateHeadPivot(speed){
+        headPivotRotating = true;
         const axis = new THREE.Vector3(-1, 0, 0);
         const target = speed > 0 ? Math.PI : 0;
-        if ((speed > 0 && headPivotState + speed <= target) || (speed < 0 && headPivotState + speed >= target)) {
+        if ((speed > 0 && headPivotAngle + speed <= target) || (speed < 0 && headPivotAngle + speed >= target)) {
             headPivot.rotateOnAxis(axis, speed);
-            headPivotState += speed;
+            headPivotAngle += speed;
             requestAnimationFrame(() => rotateHeadPivot(speed));
         } else {
-            headPivot.rotateOnAxis(axis, target - headPivotState);
-            headPivotState = target;
-            isRotationInProgress = false;
+            headPivot.rotateOnAxis(axis, target - headPivotAngle);
+            headPivotAngle = target;
+            headPivotRotating = false;
         }
     }
 }
