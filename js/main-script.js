@@ -1,17 +1,18 @@
 //import * as THREE from 'three'; // TODO: how to import THREE.js?
+// TODO: add dark edges to components would look pretty cool
 
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
 
 let scene, renderer;
-
+// Cameras
 let camera, frontCamera, sideCamera, topCamera, orthoCamera, perspCamera;
 let cameraStatus = {front: true, side: false, top: false, ortho: false, persp: false};
-
-let torso, headPivot, head, eye, antenna, thigh, leg, wheel;
-
-let rotationSpeed = 0.005;
+// RoboTruck components that are also parent objects
+let torso, headPivot, head, uLeftArm, uRightArm;
+// Rotation
+let rotationSpeed = 0.008;
 let isRotationInProgress = false;
 let headPivotState = 0;
 
@@ -79,7 +80,7 @@ function createPerspectiveCamera(){
     'use strict';
 
     perspCamera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
-    perspCamera.position.x = 500;
+    perspCamera.position.x = 500; // TODO: x, y and z can be any number really
     perspCamera.position.y = 500;
     perspCamera.position.z = 500;
     perspCamera.lookAt(scene.position);
@@ -93,65 +94,48 @@ function createPerspectiveCamera(){
 /* CREATE OBJECT3D(S) */
 ////////////////////////
 
-function createTorso(w, h, d, x=0, y=0, z=0){
-    const torsoGeometry = new THREE.BoxGeometry(w, h, d);
-    const torsoMaterial = new THREE.MeshBasicMaterial({ color: 0x035f53, wireframe: true });
-    torso = new THREE.Mesh(torsoGeometry, torsoMaterial);
-    torso.position.set(x, y, z);
-    scene.add(torso);
+function createPivot(parent, x = 0, y = 0, z = 0){
+    const pivot = new THREE.Object3D();
+    pivot.position.set(x, y, z);
+    parent.add(pivot);
+    return pivot;
 }
 
-function createHeadPivot(x, y, z){
-    headPivot = new THREE.Object3D();
-    headPivot.position.set(x, y, z);
-    torso.add(headPivot);
-}
-
-function createHead(w, h, d, x, y, z){
-    const headGeometry = new THREE.BoxGeometry(w, h, d);
-    const headMaterial = new THREE.MeshBasicMaterial({ color: 0xe8Beac, wireframe: true });
-    head = new THREE.Mesh(headGeometry, headMaterial);
-    head.position.set(x, y, z)
-    headPivot.add(head);
-}
-
-function createEye(w, h, d, x, y, z){
-    const eyeGeometry = new THREE.BoxGeometry(w, h, d);
-    const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true});
-    eye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    eye.position.set(x, y, d/2 + z);
-    headPivot.add(eye);
-}
-
-function createAntenna(w, h, d, x, y, z){
-    const antennaGeometry = new THREE.BoxGeometry(w, h, d);
-    const antennaMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true });
-    antenna = new THREE.Mesh(antennaGeometry, antennaMaterial);
-    antenna.position.set(x, y, -d/2 + z);
-    headPivot.add(antenna);
+function createCube(w, h, d, color, parent, x = 0, y = 0, z = 0){
+    const geometry = new THREE.BoxGeometry(w, h, d);
+    const material = new THREE.MeshBasicMaterial({ color: color, wireframe: true });
+    const cube = new THREE.Mesh(geometry, material);
+    cube.position.set(x, y, z);
+    parent.add(cube);
+    return cube;
 }
 
 function createRoboTruck(){
-    // TODO: show dark edges instead of wireframe would look pretty cool
 
-    const torsoW=240, torsoH=160, torsoD=160;
-    createTorso(torsoW, torsoH, torsoD);
-
+    // Torso
+    const torsoW = 240, torsoH = 160, torsoD = 160;
+    torso = createCube(torsoW, torsoH, torsoD, 0x808080, scene);
     // Head Pivot
-    createHeadPivot(0, torsoH/2, -torsoD/2);
-    const headW=80, headH=80, headD=80;
-    createHead(headW, headH, headD, 0, headH/2, headD/2);
-    const eyeW=20, eyeH=40/3, eyeD=10;
-    // TODO: do we need to keep reference to each eye/antenna? Do we need to define pivots for the eye and antenna?
-    createEye(eyeW, eyeH, eyeD, -headW/4, 3*headH/4, headD);
-    createEye(eyeW, eyeH, eyeD, headW/4, 3*headH/4, headD);
+    headPivot = createPivot(torso, 0, torsoH/2, -torsoD/2);
+    // Head
+    const headW = 80, headH = 80, headD = 80;
+    head = createCube(headW, headH, headD, 0xe8Beac, headPivot, 0, headH/2, headD/2);
+    // Eyes
+    const eyeW = 20, eyeH = 40/3, eyeD = 10;
+    createCube(eyeW, eyeH, eyeD, 0xffffff, head, -headW/4, headH/4, headD/2);
+    createCube(eyeW, eyeH, eyeD, 0xffffff, head, headW/4, headH/4, headD/2);
+    // Antennas
     const antennaW = 40/3, antennaH = 40, antennaD = 40/3;
-    createAntenna(antennaW, antennaH, antennaD, -headW/4, headH, 0);
-    createAntenna(antennaW, antennaH, antennaD, headW/4, headH, 0);
-
-
-    //createArm()
-    //
+    createCube(antennaW, antennaH, antennaD, 0xff0000, head, -headW/4, headH/2, -headD/2);
+    createCube(antennaW, antennaH, antennaD, 0xff0000, head, headW/4, headH/2, -headD/2);
+    // Upper Arms
+    const uArmW = 80, uArmH = 160, uArmD = 80;
+    uLeftArm = createCube(uArmW, uArmH, uArmD, 0x035f53, torso, -uArmW/2-torsoW/2, 0, -uArmD/2-torsoD/2);
+    uRightArm = createCube(uArmW, uArmH, uArmD, 0x035f53, torso, uArmW/2+torsoW/2, 0, -uArmD/2-torsoD/2);
+    // Lower Arms
+    const lArmW = 80, lArmH = 80, lArmD = 240;
+    createCube(lArmW, lArmH, lArmD, 0xffae42, uLeftArm, 0, -lArmH/2-uArmH/2, lArmD/2-uArmD/2);
+    createCube(lArmW, lArmH, lArmD, 0xffae42, uRightArm, 0, -lArmH/2-uArmH/2, lArmD/2-uArmD/2);
 }
 
 //////////////////////
@@ -271,7 +255,7 @@ function onKeyDown(e) {
             cameraStatus = {front: false, side: false, top: false, ortho: false, persp: true};
             camera = perspCamera;
             break;
-        // Rotation Controls
+        // Rotation Controls (keys R, F)
         case 82: // R
             if (headPivotState < Math.PI && !isRotationInProgress)
                 rotateHeadPivot(rotationSpeed);
@@ -281,6 +265,8 @@ function onKeyDown(e) {
                 rotateHeadPivot(-rotationSpeed);
             break;
     }
+
+    // TODO: is this function ok?
     function rotateHeadPivot(speed) {
         isRotationInProgress = true;
         const axis = new THREE.Vector3(-1, 0, 0);
