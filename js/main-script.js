@@ -10,7 +10,7 @@ let scene, renderer;
 let camera, frontCamera, sideCamera, topCamera, orthoCamera, perspCamera;
 let cameraStatus = {front: true, side: false, top: false, ortho: false, persp: false};
 // RoboTruck components that are also parent objects
-let torso, headPivot, head, uLeftArm, uRightArm;
+let torso, headPivot, head, uLeftArm, uRightArm, abdomen, waist, thighsPivot;
 // Movements and Rotations
 let movementSpeed = 0.2;
 let armsMoving = false;
@@ -104,20 +104,24 @@ function createPivot(parent, x = 0, y = 0, z = 0){
     return pivot;
 }
 
-function createCube(w, h, d, color, parent, x = 0, y = 0, z = 0){
+function createCube(w, h, d, color, rotAxis, parent, x = 0, y = 0, z = 0){
     const geometry = new THREE.BoxGeometry(w, h, d);
     const material = new THREE.MeshBasicMaterial({ color: color, wireframe: true });
     const cube = new THREE.Mesh(geometry, material);
+    if (rotAxis !== null)
+        cube.rotateOnAxis(rotAxis, Math.PI / 2);
     cube.position.set(x, y, z);
     parent.add(cube);
     return cube;
 }
 
-function createCylinder(rt, rb, h, color, parent, x = 0, y = 0, z = 0){
+function createCylinder(rt, rb, h, color, rotAxis, parent, x = 0, y = 0, z = 0) {
     // TODO: should we do CylinderGeometry(rt, rb, h, 32) to make it look smoother?
     const geometry = new THREE.CylinderGeometry(rt, rb, h);
     const material = new THREE.MeshBasicMaterial({ color: color, wireframe: true });
     const cylinder = new THREE.Mesh(geometry, material);
+    if (rotAxis !== null)
+        cylinder.rotateOnAxis(rotAxis, Math.PI / 2);
     cylinder.position.set(x, y, z);
     parent.add(cylinder);
     return cylinder;
@@ -127,34 +131,48 @@ function createRoboTruck(){
 
     // Torso
     const torsoW = 240, torsoH = 160, torsoD = 160;
-    torso = createCube(torsoW, torsoH, torsoD, 0x808080, scene);
+    torso = createCube(torsoW, torsoH, torsoD, 0x808080, null, scene);
     // Head Pivot
     headPivot = createPivot(torso, 0, torsoH/2, -torsoD/2);
     // Head
     const headW = 80, headH = 80, headD = 80;
-    head = createCube(headW, headH, headD, 0xe8Beac, headPivot, 0, headH/2, headD/2);
+    head = createCube(headW, headH, headD, 0xe8Beac, null, headPivot, 0, headH/2, headD/2);
     // Eyes
     const eyeW = 20, eyeH = 40/3, eyeD = 10;
-    createCube(eyeW, eyeH, eyeD, 0xffffff, head, -headW/4, headH/4, headD/2);
-    createCube(eyeW, eyeH, eyeD, 0xffffff, head, headW/4, headH/4, headD/2);
+    createCube(eyeW, eyeH, eyeD, 0xffffff, null, head, -headW/4, headH/4, headD/2);
+    createCube(eyeW, eyeH, eyeD, 0xffffff, null, head, headW/4, headH/4, headD/2);
     // Antennas
     const antennaW = 40/3, antennaH = 40, antennaD = 40/3;
-    createCube(antennaW, antennaH, antennaD, 0xff0000, head, -headW/4, headH/2, -headD/2);
-    createCube(antennaW, antennaH, antennaD, 0xff0000, head, headW/4, headH/2, -headD/2);
+    createCube(antennaW, antennaH, antennaD, 0xff0000, null, head, -headW/4, headH/2, -headD/2);
+    createCube(antennaW, antennaH, antennaD, 0xff0000, null, head, headW/4, headH/2, -headD/2);
     // Upper Arms
     const uArmW = 80, uArmH = 160, uArmD = 80;
-    uLeftArm = createCube(uArmW, uArmH, uArmD, 0x035f53, torso, -uArmW/2-torsoW/2, 0, -uArmD/2-torsoD/2);
-    uRightArm = createCube(uArmW, uArmH, uArmD, 0x035f53, torso, uArmW/2+torsoW/2, 0, -uArmD/2-torsoD/2);
+    uLeftArm = createCube(uArmW, uArmH, uArmD, 0x035f53, null, torso, -uArmW/2-torsoW/2, 0, -uArmD/2-torsoD/2);
+    uRightArm = createCube(uArmW, uArmH, uArmD, 0x035f53, null, torso, uArmW/2+torsoW/2, 0, -uArmD/2-torsoD/2);
     // Exhaust Pipes
     const pipeR = 10, pipeH = 120;
-    createCylinder(pipeR, pipeR, pipeH, 0x808080, uLeftArm, -pipeR-uArmW/2, 3*uArmH/8, pipeR-uArmD/2);
-    createCylinder(pipeR, pipeR, pipeH, 0x808080, uRightArm, pipeR+uArmW/2, 3*uArmH/8, pipeR-uArmD/2);
+    createCylinder(pipeR, pipeR, pipeH, 0x808080, null, uLeftArm, -pipeR-uArmW/2, 3*uArmH/8, pipeR-uArmD/2);
+    createCylinder(pipeR, pipeR, pipeH, 0x808080, null, uRightArm, pipeR+uArmW/2, 3*uArmH/8, pipeR-uArmD/2);
     // Lower Arms
     const lArmW = 80, lArmH = 80, lArmD = 240;
-    createCube(lArmW, lArmH, lArmD, 0xffae42, uLeftArm, 0, -lArmH/2-uArmH/2, lArmD/2-uArmD/2);
-    createCube(lArmW, lArmH, lArmD, 0xffae42, uRightArm, 0, -lArmH/2-uArmH/2, lArmD/2-uArmD/2);
+    createCube(lArmW, lArmH, lArmD, 0xffae42, null, uLeftArm, 0, -lArmH/2-uArmH/2, lArmD/2-uArmD/2);
+    createCube(lArmW, lArmH, lArmD, 0xffae42, null, uRightArm, 0, -lArmH/2-uArmH/2, lArmD/2-uArmD/2);
     // Abdomen
+    const abdomenW = 80, abdomenH = 80, abdomenD = 160;
+    abdomen = createCube(abdomenW, abdomenH, abdomenD, 0x035f53, null, torso, 0, -abdomenH/2-torsoH/2, 0);
+    // Waist
+    const waistW = 240, waistH = 80, waistD = 120;
+    waist = createCube(waistW, waistH, waistD, 0x808080, null, abdomen, 0, -waistH/2-abdomenH/2, abdomenD/8);
+    // Front Wheels
+    const wheelR = 40, wheelH = 40;
+    const rotAxis = new THREE.Vector3(0, 0, 1);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, waist, -wheelH/2-waistW/2, -waistH/2, -waistD/4);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, waist, wheelH/2+waistW/2, -waistH/2, -waistD/4);
+    // Thighs Pivot
+    thighsPivot = createPivot(waist, 0, -waistH/2, -waistD/2);
+    // Thighs
     // TODO
+
 }
 
 //////////////////////
@@ -205,6 +223,7 @@ function init() {
 
     createScene();
 
+    // TODO: Pass camera creation parameters as arguments later
     createFrontCamera();
     createSideCamera();
     createTopCamera();
