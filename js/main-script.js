@@ -10,7 +10,8 @@ let scene, renderer, controls; //todo remove stats and controls
 let camera, frontCamera, sideCamera, topCamera, orthoCamera, perspCamera;
 let cameraStatus = {front: true, side: false, top: false, ortho: false, persp: false};
 // RoboTruck components that are also parent objects
-let torso, headPivot, head, uLeftArm, uRightArm, abdomen, waist, thighsPivot;
+let torso, headPivot, head, uLeftArm, uRightArm, abdomen, waist, thighsPivot,
+    leftThigh, rightThigh, leftLeg, rightLeg;
 // Movements and Rotations
 let movementSpeed = 0.2;
 let armsMoving = false;
@@ -177,7 +178,28 @@ function createRoboTruck(){
     // Thighs Pivot
     thighsPivot = createPivot(waist, 0, -waistH/2, -waistD/2);
     // Thighs
-    // TODO
+    const thighW = 40, thighH = 120, thighD = 40;
+    leftThigh = createCube(thighW, thighH, thighD, 0x3492da, null, waist, -waistW/3+thighW/2, -waistH/2-thighH/2, -waistD/2-thighD/2);
+    rightThigh = createCube(thighW, thighH, thighD, 0x3492da, null, waist, waistW/3-thighW/2, -waistH/2-thighH/2, -waistD/2-thighD/2);
+    // Legs
+    const legW = 80, legH = 320, legD = 80;
+    leftLeg = createCube(legW, legH, legD, 0x3630a6, null, leftThigh, 0, -thighH/2-legH/2, -thighD/2);
+    rightLeg = createCube(legW, legH, legD, 0x3630a6, null, rightThigh, 0, -thighH/2-legH/2, -thighD/2);
+    // Back Wheels
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, leftLeg, -legW/2-wheelH/2, legH/16, legD/4);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, leftLeg, -legW/2-wheelH/2, -5*legH/16, legD/4);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, rightLeg, legW/2+wheelH/2, legH/16, legD/4);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, rightLeg, legW/2+wheelH/2, -5*legH/16, legD/4);
+    // Trailer Socket (fitting word?)
+    const socketW = 40, socketH = 40, socketD = 40;
+    createCube(socketW, socketH, socketD, 0xdac134, null, leftLeg, legW/4, 3*legH/16, -3*socketD/2);
+    createCube(socketW, socketH, socketD, 0xdac134, null, rightLeg, -legW/4, 3*legH/16, -3*socketD/2);
+    // Boots Pivot
+    //  TODO
+    // Boots
+    const bootW = 80, bootH = 40, bootD = 40;
+    createCube(bootW, bootH, bootD, 0x131056, null, leftLeg, 0, -legH/2-bootH/2, legD/2+bootD/2)
+    createCube(bootW, bootH, bootD, 0x131056, null, rightLeg, 0, -legH/2-bootH/2, legD/2+bootD/2)
 
 }
 
@@ -456,8 +478,9 @@ function onKeyDown(e) {
             latchPivotRotating = false;
         }
     }
-}
 */
+
+}
 
 ///////////////////////
 /* KEY UP CALLBACK */
