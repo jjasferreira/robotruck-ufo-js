@@ -11,7 +11,7 @@ let camera, frontCamera, sideCamera, topCamera, orthoCamera, perspCamera;
 let cameraStatus = {front: true, side: false, top: false, ortho: false, persp: false};
 // RoboTruck components that are also parent objects
 let torso, headPivot, head, uLeftArm, uRightArm, abdomen, waist, thighsPivot,
-    leftThigh, rightThigh, leftLeg, rightLeg;
+    leftThigh, rightThigh, leftLeg, rightLeg, bootsPivot;
 // Movements and Rotations
 let movementSpeed = 0.2;
 let armsMoving = false;
@@ -19,6 +19,10 @@ let armsOffset = 0;
 let rotationSpeed = 0.008;
 let headPivotRotating = false;
 let headPivotAngle = 0;
+let thighsPivotRotating = false;
+let thighsPivotAngle = 0;
+let bootsPivotRotating = false;
+let bootsPivotAngle = 0;
 
 //trailer components that are also parent objects
 let trailerBody, plate, wheelRig, couplerBody
@@ -397,6 +401,28 @@ function onKeyDown(e) {
             if (headPivotAngle > 0 && !headPivotRotating)
                 rotateHeadPivot(-rotationSpeed);
             break;
+        // Thighs Rotation Controls (keys T, G)
+        case 84: // T
+        case 116: // t
+            if (thighsPivotAngle < Math.PI/2 && !thighsPivotRotating)
+                rotateThighsPivot(rotationSpeed);
+            break;
+        case 71: //G
+        case 103: //g
+            if (thighsPivotAngle > 0 && !thighsPivotRotating)
+                rotateThighsPivot(-rotationSpeed);
+            break;
+        // Boots Rotation Controls (keys Y, H)
+        case 87: // Y
+        case 119: // y
+            if (bootsPivotAngle < Math.PI/2 && !bootsPivotRotating)
+                rotateBootsPivot(rotationSpeed);
+            break;
+        case 72: //H
+        case 104: //h
+            if (bootsPivotAngle > 0 && !bootsPivotRotating)
+                rotateBootsPivot(-rotationSpeed);
+            break;
         /* Trailer movement (arrow keys - left, right, down, up)
         case 37: // left arrow
             if (trailerOffset < 80 && !trailerMoving)
@@ -463,7 +489,40 @@ function onKeyDown(e) {
             headPivotRotating = false;
         }
     }
-/*
+
+    /*
+    function rotateThighsPivot(speed) {
+        thighsPivotRotating = true;
+        const axis = new THREE.Vector3(0, 0, 0);
+        const target = speed > 0 ? Math.PI/2 : 0;
+        if ((speed > 0 && thighsPivotAngle + speed <= target)  || (speed < 0 && thighsPivotAngle + speed >= target)) {
+            thighsPivot.rotateOnAxis(axis, -speed);
+            thighsPivotAngle += speed;
+            requestAnimationFrame(() => rotateThighsPivot(speed));
+        }
+        else {
+            thighsPivot.rotateOnAxis(axis, target - thighsPivotAngle);
+            thighsPivotAngle = target;
+            thighsPivotRotating = false;
+        }
+    }
+
+    function rotateBootsPivot(speed){
+        bootsPivotRotating = true;
+        const axis = new THREE.Vector3(0, 0, 0);
+        const target = speed > 0 ? Math.PI/2 : 0;
+        if ((speed > 0 && bootsPivotAngle + speed <= target) || (speed < 0 && bootsPivotAngle + speed >= target)) {
+            bootsPivot.rotateOnAxis(axis, -speed);
+            bootsPivotAngle += speed;
+            requestAnimationFrame(() => rotateBootsPivot(speed));
+        } 
+        else {
+            bootsPivot.rotateOnAxis(axis, target - bootsPivotAngle);
+            bootsPivotAngle = target;
+            bootsPivotRotating = false;
+        }
+    }
+
     function rotateLatchPivot(speed) {
         latchPivotRotating = true;
         const axis = new THREE.Vector3(0, 1, 0);
