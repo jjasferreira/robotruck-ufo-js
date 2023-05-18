@@ -20,8 +20,9 @@ let headPivotRotating = false;
 let headPivotAngle = 0;
 
 //trailer components that are also parent objects
-let trailerBody, underPlate, wheelRig, couplerBody
-let couplerMoving = false;
+let trailerBody, plate, wheelRig, couplerBody
+let latchPivot;
+let latchPivotRotating = false;
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -197,22 +198,30 @@ function createRoboTruck(){
 
 function createTrailer() {
     const bodyW = 240, bodyH = 280, bodyD = 1160;
-    trailerBody = createCube(bodyW, bodyH, bodyD, 0x035f53, null, scene, 300, 0, -1080);
+    trailerBody = createCube(bodyW, bodyH, bodyD, 0xff606b, null, scene, 300, 0, -1080);
 
     const plateW = 240, plateH = 40, plateD = 760;
     // color is light gray hex = 0x808080
-    plate = createCube(plateW, plateH, plateD, 0x808080, null, trailerBody, 0, -bodyH/2, -bodyD/2 + plateD/2);
+    plate = createCube(plateW, plateH, plateD, 0x808080, null, trailerBody, 0, -bodyH/2 - plateH/2, -bodyD/2 + plateD/2);
 
     const wheelRigW = 240, wheelRigH = 80, wheelRigD = 400;
     // color is dark gray hex = 0x 858585
-    wheelRig = createCube(wheelRigW, wheelRigH, wheelRigD, 0x2222222, null, plate, 0, -plateH/2, -plateD/2 + wheelRigD/2);
+    wheelRig = createCube(wheelRigW, wheelRigH, wheelRigD, 0x2222222, null, plate, 0, -plateH/2 - wheelRigH/2, -plateD/2 + wheelRigD/2);
 
     const wheelR = 40, wheelH = 40;
     const rotAxis = new THREE.Vector3(0, 0, 1);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, -wheelH/2-wheelRigW/2, -wheelRigH/2, -wheelRigD/4);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, wheelH/2+wheelRigW/2, -wheelRigH/2, -wheelRigD/4);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, -wheelH/2-wheelRigW/2, -wheelRigH/2, wheelRigD/4);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, wheelH/2+wheelRigW/2, -wheelRigH/2, wheelRigD/4);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, -wheelH/2-wheelRigW/2, -wheelRigH/4, -wheelRigD/5);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, wheelH/2+wheelRigW/2, -wheelRigH/4, -wheelRigD/5);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, -wheelH/2-wheelRigW/2, -wheelRigH/4, wheelRigD/5);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, wheelH/2+wheelRigW/2, -wheelRigH/4, wheelRigD/5);
+
+    const couplerW = 80, couplerH = 40, couplerD = 120;
+    const couplerLatchW = 40, couplerLatchH = 40, couplerLatchD = 40;
+    couplerBody = createCube(couplerW, couplerH, couplerD, 0x808080, null, trailerBody, 0, -bodyH/2 - couplerH/2, bodyD/2 - couplerD/2 - couplerLatchD);
+    let couplerPivot1 = createPivot(couplerBody, -couplerW/2, 0, couplerD/2);
+    let couplerPivot2 = createPivot(couplerBody, couplerW/2, 0, couplerD/2);
+    let couplerLatch1 = createCube(couplerLatchW, couplerLatchH, couplerLatchD, 0x808080, null, couplerPivot1, couplerLatchW/2, 0, couplerLatchD/2);
+    let couplerLatch2 = createCube(couplerLatchW, couplerLatchH, couplerLatchD, 0x808080, null, couplerPivot2, -couplerLatchW/2, 0, couplerLatchD/2);
 
 }
 
@@ -432,7 +441,23 @@ function onKeyDown(e) {
             headPivotRotating = false;
         }
     }
+/*
+    function rotateLatchPivot(speed) {
+        latchPivotRotating = true;
+        const axis = new THREE.Vector3(0, 1, 0);
+        const target = speed > 0 ? Math.PI : 0;
+        if ((speed > 0 && latchPivotAngle + speed <= target) || (speed < 0 && latchPivotAngle + speed >= target)) {
+            latchPivot.rotateOnAxis(axis, speed);
+            latchPivotAngle += speed;
+            requestAnimationFrame(() => rotateLatchPivot(speed));
+        } else {
+            latchPivot.rotateOnAxis(axis, target - latchPivotAngle);
+            latchPivotAngle = target;
+            latchPivotRotating = false;
+        }
+    }
 }
+*/
 
 ///////////////////////
 /* KEY UP CALLBACK */
