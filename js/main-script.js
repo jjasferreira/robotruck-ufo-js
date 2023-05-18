@@ -1,17 +1,24 @@
-//import * as THREE from 'three'; // TODO: how to import THREE.js?
+'use strict';   // Aplies to all of script
 // TODO: add dark edges to components would look pretty cool
 
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
 
-let scene, renderer, controls; //todo remove stats and controls
+let scene, renderer;
+
 // Cameras
-let camera, frontCamera, sideCamera, topCamera, orthoCamera, perspCamera;
-let cameraStatus = {front: true, side: false, top: false, ortho: false, persp: false};
-// RoboTruck components that are also parent objects
+let camera;
+const cameras = {front: null, side: null, top: null, iso: null, persp: null};
+
+// Keys
+const keys = {};
+
+// RoboTruck components and their materials
 let torso, headPivot, head, uLeftArm, uRightArm, abdomen, waist, thighsPivot,
     leftThigh, rightThigh, leftLeg, rightLeg, bootsPivot;
+let materials = [];
+
 // Movements and Rotations
 let movementSpeed = 0.2;
 let armsMoving = false;
@@ -24,7 +31,7 @@ let thighsPivotAngle = 0;
 let bootsPivotRotating = false;
 let bootsPivotAngle = 0;
 
-//trailer components that are also parent objects
+// Trailer components
 let trailerBody, plate, wheelRig, couplerBody
 let latchPivot;
 let latchPivotRotating = false;
@@ -34,10 +41,10 @@ let latchPivotRotating = false;
 /////////////////////
 
 function createScene(){
-    'use strict';
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xF0EAD6);
+    scene.fog = new THREE.FogExp2( 0xa9a9fc, 0.00025);
     createRoboTruck();
     createTrailer();
     // TODO: remove the axes helper later
@@ -50,54 +57,22 @@ function createScene(){
 /* CREATE CAMERA(S) */
 //////////////////////
 
-function createFrontCamera(){
-    'use strict';
+function createOrthographicCamera(x, y, z, near, far){
 
-    frontCamera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 5000);
-    frontCamera.position.x = 0;
-    frontCamera.position.y = 0;
-    frontCamera.position.z = 500;
-    frontCamera.lookAt(scene.position);
+    const width = window.innerWidth / 2;
+    const height = window.innerHeight / 2;
+    const camera = new THREE.OrthographicCamera(-width, width, height, -height, near, far);
+    camera.position.set(x, y, z);
+    camera.lookAt(scene.position);
+    return camera;
 }
 
-function createSideCamera() {
-    'use strict';
+function createPerspectiveCamera(x, y, z, near, far, fov){
 
-    sideCamera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 5000);
-    sideCamera.position.x = 500;
-    sideCamera.position.y = 0;
-    sideCamera.position.z = 0;
-    sideCamera.lookAt(scene.position);
-}
-
-function createTopCamera(){
-    'use strict';
-
-    topCamera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 5000);
-    topCamera.position.x = 0;
-    topCamera.position.y = 500;
-    topCamera.position.z = 0;
-    topCamera.lookAt(scene.position);
-}
-
-function createOrthographicCamera(){
-    'use strict';
-
-    orthoCamera = new THREE.OrthographicCamera(-500, 500, 500, -500, 1, 5000);
-    orthoCamera.position.x = 500;
-    orthoCamera.position.y = 500;
-    orthoCamera.position.z = 500;
-    orthoCamera.lookAt(scene.position);
-}
-
-function createPerspectiveCamera(){
-    'use strict';
-
-    perspCamera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 5000);
-    perspCamera.position.x = 400; // TODO: x, y and z can be any number really
-    perspCamera.position.y = 300;
-    perspCamera.position.z = 500;
-    perspCamera.lookAt(scene.position);
+    const camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, near, far);
+    camera.position.set(x, y, z);
+    camera.lookAt(scene.position);
+    return camera;
 }
 
 /////////////////////
@@ -109,6 +84,7 @@ function createPerspectiveCamera(){
 ////////////////////////
 
 function createPivot(parent, x = 0, y = 0, z = 0){
+
     const pivot = new THREE.Object3D();
     pivot.position.set(x, y, z);
     parent.add(pivot);
@@ -116,8 +92,10 @@ function createPivot(parent, x = 0, y = 0, z = 0){
 }
 
 function createCube(w, h, d, color, rotAxis, parent, x = 0, y = 0, z = 0){
+
     const geometry = new THREE.BoxGeometry(w, h, d);
-    const material = new THREE.MeshBasicMaterial({ color: color, wireframe: true });
+    const material = new THREE.MeshBasicMaterial({ color: color });
+    materials.push(material);
     const cube = new THREE.Mesh(geometry, material);
     if (rotAxis !== null)
         cube.rotateOnAxis(rotAxis, Math.PI / 2);
@@ -126,10 +104,12 @@ function createCube(w, h, d, color, rotAxis, parent, x = 0, y = 0, z = 0){
     return cube;
 }
 
-function createCylinder(rt, rb, h, color, rotAxis, parent, x = 0, y = 0, z = 0) {
+function createCylinder(rt, rb, h, color, rotAxis, parent, x = 0, y = 0, z = 0){
+
     // TODO: should we do CylinderGeometry(rt, rb, h, 32) to make it look smoother?
     const geometry = new THREE.CylinderGeometry(rt, rb, h);
-    const material = new THREE.MeshBasicMaterial({ color: color, wireframe: true });
+    const material = new THREE.MeshBasicMaterial({ color: color });
+    materials.push(material);
     const cylinder = new THREE.Mesh(geometry, material);
     if (rotAxis !== null)
         cylinder.rotateOnAxis(rotAxis, Math.PI / 2);
@@ -177,8 +157,8 @@ function createRoboTruck(){
     // Front Wheels
     const wheelR = 40, wheelH = 40;
     const rotAxis = new THREE.Vector3(0, 0, 1);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, waist, -wheelH/2-waistW/2, -waistH/2, -waistD/4);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, waist, wheelH/2+waistW/2, -waistH/2, -waistD/4);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, waist, -wheelH/2-waistW/2, -waistH/4, 0);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, waist, wheelH/2+waistW/2, -waistH/4, 0);
     // Thighs Pivot
     thighsPivot = createPivot(waist, 0, -waistH/2, -waistD/2);
     // Thighs
@@ -207,22 +187,8 @@ function createRoboTruck(){
 
 }
 
-/////////////
-/* TRAILER */
-/////////////
+function createTrailer(){
 
-/*function createCube(w, h, d, color, rotAxis, parent, x = 0, y = 0, z = 0){
-    const geometry = new THREE.BoxGeometry(w, h, d);
-    const material = new THREE.MeshBasicMaterial({ color: color, wireframe: true });
-    const cube = new THREE.Mesh(geometry, material);
-    if (rotAxis !== null)
-        cube.rotateOnAxis(rotAxis, Math.PI / 2);
-    cube.position.set(x, y, z);
-    parent.add(cube);
-    return cube;
-}*/
-
-function createTrailer() {
     const bodyW = 240, bodyH = 280, bodyD = 1160;
     trailerBody = createCube(bodyW, bodyH, bodyD, 0xff606b, null, scene, 300, 0, -1080);
 
@@ -255,7 +221,6 @@ function createTrailer() {
 /* CHECK COLLISIONS */
 //////////////////////
 function checkCollisions() {
-    'use strict';
 
 }
 
@@ -263,7 +228,6 @@ function checkCollisions() {
 /* HANDLE COLLISIONS */
 ///////////////////////
 function handleCollisions(){
-    'use strict';
 
 }
 
@@ -271,16 +235,14 @@ function handleCollisions(){
 /* UPDATE */
 ////////////
 function update(){
-    'use strict';
 
-    //torso.rotation.y += 0.001;
+    // testing: torso.rotation.y += 0.001;
 }
 
 /////////////
 /* DISPLAY */
 /////////////
-function render() {
-    'use strict';
+function render(){
 
     renderer.render(scene, camera);
 }
@@ -288,8 +250,8 @@ function render() {
 ////////////////////////////////
 /* INITIALIZE ANIMATION CYCLE */
 ////////////////////////////////
-function init() {
-    'use strict';
+// noinspection JSUnresolvedReference
+function init(){
 
     renderer = new THREE.WebGLRenderer({
         antialias: true
@@ -299,15 +261,16 @@ function init() {
 
     createScene();
 
-    // TODO: Pass camera creation parameters as arguments later
-    createFrontCamera();
-    createSideCamera();
-    createTopCamera();
-    createOrthographicCamera();
-    createPerspectiveCamera();
-    camera = frontCamera;
+    // Create all cameras and set default camera
+    cameras.front = createOrthographicCamera(0, 0, 500, 1, 5000);
+    cameras.side = createOrthographicCamera(500, 0, 0, 1, 5000);
+    cameras.top = createOrthographicCamera(0, 500, 0, 1, 5000);
+    cameras.iso = createOrthographicCamera(500, 500, 500, 1, 5000);
+    cameras.persp = createPerspectiveCamera(500, 500, 750, 1, 5000, 80);
+    camera = cameras.front;
 
-    controls = new THREE.OrbitControls( camera, renderer.domElement ); // TODO remove
+    // TODO: remove this controls line later
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
 
     render();
 
@@ -319,8 +282,7 @@ function init() {
 /////////////////////
 /* ANIMATION CYCLE */
 /////////////////////
-function animate() {
-    'use strict';
+function animate(){
 
     requestAnimationFrame(animate);
     update();
@@ -331,8 +293,7 @@ function animate() {
 /* RESIZE WINDOW CALLBACK */
 ////////////////////////////
 
-function onResize() {
-    'use strict';
+function onResize(){
 
     // TODO: how to keep resize information when changing camera?
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -346,37 +307,30 @@ function onResize() {
 /* KEY DOWN CALLBACK */
 ///////////////////////
 
-function onKeyDown(e) {
-    'use strict';
+function onKeyDown(e){
 
     switch (e.keyCode) {
         // Camera Controls (keys 1, 2, 3, 4, 5)
         case 49: // 1
-            cameraStatus = {front: true, side: false, top: false, ortho: false, persp: false};
-            camera = frontCamera;
+            camera = cameras.front;
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
             break;
         case 50: // 2
-            cameraStatus = {front: false, side: true, top: false, ortho: false, persp: false};
-            camera = sideCamera;
+            camera = cameras.side;
             break;
         case 51: // 3
-            cameraStatus = {front: false, side: false, top: true, ortho: false, persp: false};
-            camera = topCamera;
+            camera = cameras.top;
             break;
         case 52: // 4
-            cameraStatus = {front: false, side: false, top: false, ortho: true, persp: false};
-            camera = orthoCamera;
+            camera = cameras.iso;
             break;
         case 53: // 5
-            cameraStatus = {front: false, side: false, top: false, ortho: false, persp: true};
-            camera = perspCamera;
+            camera = cameras.persp;
             break;
         // Visual Representation Controls (key 6)
         case 54: // 6
-            // TODO: should objects be instantiated with wireframe or not?
-            scene.traverse(function (node) {
-                if (node instanceof THREE.Mesh)
-                    node.material.wireframe = !node.material.wireframe;
+            materials.forEach(function (material) {
+                material.wireframe = !material.wireframe;
             });
             break;
         // Arms Movement Controls (keys E, D)
@@ -546,6 +500,9 @@ function onKeyDown(e) {
 ///////////////////////
 
 function onKeyUp(e){
-    'use strict';
 
+    // Ignore 1 to 6 keys because they are used for camera switching
+    if (e.keyCode >= 49 && e.keyCode <= 54)
+        return;
+    keys[e.keyCode] = false;
 }
