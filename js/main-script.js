@@ -16,7 +16,7 @@ const keys = {};
 
 // RoboTruck components and their materials
 let torso, headPivot, head, uLeftArm, uRightArm, abdomen, waist, thighsPivot,
-    leftThigh, rightThigh, leftLeg, rightLeg, bootsPivot;
+    leftThigh, rightThigh, leftLeg, rightLeg, leftBootPivot, rightBootPivot;
 let materials = [];
 
 // Movements and Rotations
@@ -163,8 +163,8 @@ function createRoboTruck(){
     thighsPivot = createPivot(waist, 0, -waistH/2, -waistD/2);
     // Thighs
     const thighW = 40, thighH = 120, thighD = 40;
-    leftThigh = createCube(thighW, thighH, thighD, 0x3492da, null, waist, -waistW/3+thighW/2, -waistH/2-thighH/2, -waistD/2-thighD/2);
-    rightThigh = createCube(thighW, thighH, thighD, 0x3492da, null, waist, waistW/3-thighW/2, -waistH/2-thighH/2, -waistD/2-thighD/2);
+    leftThigh = createCube(thighW, thighH, thighD, 0x3492da, null, thighsPivot, -waistW/3, -thighH/2, -thighD/2);
+    rightThigh = createCube(thighW, thighH, thighD, 0x3492da, null, thighsPivot, waistW/3, -thighH/2, -thighD/2);
     // Legs
     const legW = 80, legH = 320, legD = 80;
     leftLeg = createCube(legW, legH, legD, 0x3630a6, null, leftThigh, 0, -thighH/2-legH/2, -thighD/2);
@@ -178,13 +178,13 @@ function createRoboTruck(){
     const socketW = 40, socketH = 40, socketD = 40;
     createCube(socketW, socketH, socketD, 0xdac134, null, leftLeg, legW/4, 3*legH/16, -3*socketD/2);
     createCube(socketW, socketH, socketD, 0xdac134, null, rightLeg, -legW/4, 3*legH/16, -3*socketD/2);
-    // Boots Pivot
-    //  TODO
+    // Boots Pivots
+    leftBootPivot = createPivot(leftLeg, 0, -legH/2, +legD/2);
+    rightBootPivot = createPivot(rightLeg, 0, -legH/2, +legD/2);
     // Boots
     const bootW = 80, bootH = 40, bootD = 40;
-    createCube(bootW, bootH, bootD, 0x131056, null, leftLeg, 0, -legH/2-bootH/2, legD/2+bootD/2)
-    createCube(bootW, bootH, bootD, 0x131056, null, rightLeg, 0, -legH/2-bootH/2, legD/2+bootD/2)
-
+    createCube(bootW, bootH, bootD, 0x131056, null, leftBootPivot, 0, -bootH/2, +bootD/2);
+    createCube(bootW, bootH, bootD, 0x131056, null, rightBootPivot, 0, -bootH/2, +bootD/2);
 }
 
 function createTrailer(){
@@ -355,25 +355,25 @@ function onKeyDown(e){
             if (headPivotAngle > 0 && !headPivotRotating)
                 rotateHeadPivot(-rotationSpeed);
             break;
-        // Thighs Rotation Controls (keys T, G)
-        case 84: // T
-        case 116: // t
+        // Thighs Rotation Controls (keys W, S)
+        case 87: // W
+        case 119: // w
             if (thighsPivotAngle < Math.PI/2 && !thighsPivotRotating)
                 rotateThighsPivot(rotationSpeed);
             break;
-        case 71: //G
-        case 103: //g
+        case 83: //S
+        case 115: //s
             if (thighsPivotAngle > 0 && !thighsPivotRotating)
                 rotateThighsPivot(-rotationSpeed);
             break;
-        // Boots Rotation Controls (keys Y, H)
-        case 87: // Y
-        case 119: // y
+        // Boots Rotation Controls (keys Q, A)
+        case 81: // Q
+        case 113: // q
             if (bootsPivotAngle < Math.PI/2 && !bootsPivotRotating)
                 rotateBootsPivot(rotationSpeed);
             break;
-        case 72: //H
-        case 104: //h
+        case 65: //A
+        case 97: //a
             if (bootsPivotAngle > 0 && !bootsPivotRotating)
                 rotateBootsPivot(-rotationSpeed);
             break;
@@ -444,13 +444,13 @@ function onKeyDown(e){
         }
     }
 
-    /*
+    
     function rotateThighsPivot(speed) {
         thighsPivotRotating = true;
-        const axis = new THREE.Vector3(0, 0, 0);
+        const axis = new THREE.Vector3(1, 0, 0);
         const target = speed > 0 ? Math.PI/2 : 0;
         if ((speed > 0 && thighsPivotAngle + speed <= target)  || (speed < 0 && thighsPivotAngle + speed >= target)) {
-            thighsPivot.rotateOnAxis(axis, -speed);
+            thighsPivot.rotateOnAxis(axis, speed);
             thighsPivotAngle += speed;
             requestAnimationFrame(() => rotateThighsPivot(speed));
         }
@@ -463,20 +463,23 @@ function onKeyDown(e){
 
     function rotateBootsPivot(speed){
         bootsPivotRotating = true;
-        const axis = new THREE.Vector3(0, 0, 0);
+        const axis = new THREE.Vector3(1, 0, 0);
         const target = speed > 0 ? Math.PI/2 : 0;
         if ((speed > 0 && bootsPivotAngle + speed <= target) || (speed < 0 && bootsPivotAngle + speed >= target)) {
-            bootsPivot.rotateOnAxis(axis, -speed);
+            rightBootPivot.rotateOnAxis(axis, speed);
+            leftBootPivot.rotateOnAxis(axis, speed);
             bootsPivotAngle += speed;
             requestAnimationFrame(() => rotateBootsPivot(speed));
         } 
         else {
-            bootsPivot.rotateOnAxis(axis, target - bootsPivotAngle);
+            leftBootPivot.rotateOnAxis(axis, target - bootsPivotAngle);
+            rightBootPivot.rotateOnAxis(axis, target - bootsPivotAngle);
             bootsPivotAngle = target;
             bootsPivotRotating = false;
         }
     }
 
+/*
     function rotateLatchPivot(speed) {
         latchPivotRotating = true;
         const axis = new THREE.Vector3(0, 1, 0);
