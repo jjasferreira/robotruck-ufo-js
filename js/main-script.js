@@ -12,7 +12,7 @@ let camera;
 const cameras = {front: null, side: null, top: null, iso: null, persp: null};
 
 // Keys
-const keys = {};
+let keys = {};
 
 // RoboTruck components and their materials
 let torso, headPivot, head, uLeftArm, uRightArm, abdomen, waist, thighsPivot,
@@ -235,8 +235,74 @@ function handleCollisions(){
 /* UPDATE */
 ////////////
 function update(){
-
-    // testing: torso.rotation.y += 0.001;
+    for (let k in keys) {
+        if (keys[k] == true) {
+            switch (k) {
+                // Arms Movement Controls (keys E, D)
+                case "69": // E
+                case "101": // e
+                    if (armsOffset < 80 && !armsMoving)
+                        moveArms(movementSpeed);
+                    break;
+                case "68": // D
+                case "100": // d
+                    if (armsOffset > 0 && !armsMoving)
+                        moveArms(-movementSpeed);
+                    break;
+                // Head Rotation Controls (keys R, F)
+                case "82": // R
+                case "114": // r
+                    if (headPivotAngle < Math.PI && !headPivotRotating)
+                        rotateHeadPivot(rotationSpeed);
+                    break;
+                case "70": // F
+                case "102": // f
+                    if (headPivotAngle > 0 && !headPivotRotating)
+                        rotateHeadPivot(-rotationSpeed);
+                    break;
+                // Thighs Rotation Controls (keys W, S)
+                case "87": // W
+                case "119": // w
+                    if (thighsPivotAngle < Math.PI/2 && !thighsPivotRotating)
+                        rotateThighsPivot(rotationSpeed);
+                    break;
+                case "83": //S
+                case "115": //s
+                    if (thighsPivotAngle > 0 && !thighsPivotRotating)
+                        rotateThighsPivot(-rotationSpeed);
+                    break;
+                // Boots Rotation Controls (keys Q, A)
+                case "81": // Q
+                case "113": // q
+                    if (bootsPivotAngle < Math.PI/2 && !bootsPivotRotating)
+                        rotateBootsPivot(rotationSpeed);
+                    break;
+                case "65": //A
+                case "97": //a
+                    if (bootsPivotAngle > 0 && !bootsPivotRotating)
+                        rotateBootsPivot(-rotationSpeed);
+                    break;
+                /*// Trailer movement (arrow keys - left, right, down, up)
+                case "37": // left arrow
+                    if (trailerOffset < 80 && !trailerMoving)
+                        moveTrailer("x", movementSpeed);
+                    break;
+                case "39": // right arrow
+                    if (trailerOffset > 0 && !trailerMoving)
+                        moveTrailer("x", -movementSpeed);
+                    break;
+                case "40": // down arrow
+                    if (trailerOffset < 80 && !trailerMoving)
+                        moveTrailer("z", movementSpeed);
+                    break;
+                case "38": // up arrow
+                    if (trailerOffset > 0 && !trailerMoving)
+                        moveTrailer("z", -movementSpeed);
+                    break;
+                */
+            }
+        }
+    }
 }
 
 /////////////
@@ -284,9 +350,9 @@ function init(){
 /////////////////////
 function animate(){
 
-    requestAnimationFrame(animate);
     update();
     render();
+    requestAnimationFrame(animate);
 }
 
 ////////////////////////////
@@ -333,169 +399,9 @@ function onKeyDown(e){
                 material.wireframe = !material.wireframe;
             });
             break;
-        // Arms Movement Controls (keys E, D)
-        case 69: // E
-        case 101: // e
-            if (armsOffset < 80 && !armsMoving)
-                moveArms(movementSpeed);
-            break;
-        case 68: // D
-        case 100: // d
-            if (armsOffset > 0 && !armsMoving)
-                moveArms(-movementSpeed);
-            break;
-        // Head Rotation Controls (keys R, F)
-        case 82: // R
-        case 114: // r
-            if (headPivotAngle < Math.PI && !headPivotRotating)
-                rotateHeadPivot(rotationSpeed);
-            break;
-        case 70: // F
-        case 102: // f
-            if (headPivotAngle > 0 && !headPivotRotating)
-                rotateHeadPivot(-rotationSpeed);
-            break;
-        // Thighs Rotation Controls (keys W, S)
-        case 87: // W
-        case 119: // w
-            if (thighsPivotAngle < Math.PI/2 && !thighsPivotRotating)
-                rotateThighsPivot(rotationSpeed);
-            break;
-        case 83: //S
-        case 115: //s
-            if (thighsPivotAngle > 0 && !thighsPivotRotating)
-                rotateThighsPivot(-rotationSpeed);
-            break;
-        // Boots Rotation Controls (keys Q, A)
-        case 81: // Q
-        case 113: // q
-            if (bootsPivotAngle < Math.PI/2 && !bootsPivotRotating)
-                rotateBootsPivot(rotationSpeed);
-            break;
-        case 65: //A
-        case 97: //a
-            if (bootsPivotAngle > 0 && !bootsPivotRotating)
-                rotateBootsPivot(-rotationSpeed);
-            break;
-        /* Trailer movement (arrow keys - left, right, down, up)
-        case 37: // left arrow
-            if (trailerOffset < 80 && !trailerMoving)
-                moveTrailer("x", movementSpeed);
-            break;
-        case 39: // right arrow
-            if (trailerOffset > 0 && !trailerMoving)
-                moveTrailer("x", -movementSpeed);
-            break;
-        case 40: // down arrow
-            if (trailerOffset < 80 && !trailerMoving)
-                moveTrailer("z", movementSpeed);
-            break;
-        case 38: // up arrow
-            if (trailerOffset > 0 && !trailerMoving)
-                moveTrailer("z", -movementSpeed);
-            break;
-         */
+        default:
+            keys[e.keyCode] = true;
     }
-    /*
-    function moveTrailer(axis, speed){
-        trailerMoving = true;
-        const target = speed > 0 ? 80 : 0;
-        if ((speed > 0 && trailerOffset + speed <= target) || (speed < 0 && trailerOffset + speed >= target)) {
-            trailer.position[axis] += speed;
-            trailerOffset += speed;
-            requestAnimationFrame(() => moveTrailer(axis, speed));
-        } else {
-            trailer.position[axis] += target - trailerOffset;
-            trailerOffset = target;
-            trailerMoving = false;
-        }
-    }
-    */
-
-    function moveArms(speed){
-        armsMoving = true;
-        const target = speed > 0 ? 80 : 0;
-        if ((speed > 0 && armsOffset + speed <= target) || (speed < 0 && armsOffset + speed >= target)) {
-            uLeftArm.position.x += speed;
-            uRightArm.position.x -= speed;
-            armsOffset += speed;
-            requestAnimationFrame(() => moveArms(speed));
-        } else {
-            uLeftArm.position.x += target - armsOffset;
-            uRightArm.position.x -= target - armsOffset;
-            armsOffset = target;
-            armsMoving = false;
-        }
-    }
-
-    // TODO: is this function ok?
-    function rotateHeadPivot(speed){
-        headPivotRotating = true;
-        const axis = new THREE.Vector3(-1, 0, 0);
-        const target = speed > 0 ? Math.PI : 0;
-        if ((speed > 0 && headPivotAngle + speed <= target) || (speed < 0 && headPivotAngle + speed >= target)) {
-            headPivot.rotateOnAxis(axis, speed);
-            headPivotAngle += speed;
-            requestAnimationFrame(() => rotateHeadPivot(speed));
-        } else {
-            headPivot.rotateOnAxis(axis, target - headPivotAngle);
-            headPivotAngle = target;
-            headPivotRotating = false;
-        }
-    }
-
-    
-    function rotateThighsPivot(speed) {
-        thighsPivotRotating = true;
-        const axis = new THREE.Vector3(1, 0, 0);
-        const target = speed > 0 ? Math.PI/2 : 0;
-        if ((speed > 0 && thighsPivotAngle + speed <= target)  || (speed < 0 && thighsPivotAngle + speed >= target)) {
-            thighsPivot.rotateOnAxis(axis, speed);
-            thighsPivotAngle += speed;
-            requestAnimationFrame(() => rotateThighsPivot(speed));
-        }
-        else {
-            thighsPivot.rotateOnAxis(axis, target - thighsPivotAngle);
-            thighsPivotAngle = target;
-            thighsPivotRotating = false;
-        }
-    }
-
-    function rotateBootsPivot(speed){
-        bootsPivotRotating = true;
-        const axis = new THREE.Vector3(1, 0, 0);
-        const target = speed > 0 ? Math.PI/2 : 0;
-        if ((speed > 0 && bootsPivotAngle + speed <= target) || (speed < 0 && bootsPivotAngle + speed >= target)) {
-            rightBootPivot.rotateOnAxis(axis, speed);
-            leftBootPivot.rotateOnAxis(axis, speed);
-            bootsPivotAngle += speed;
-            requestAnimationFrame(() => rotateBootsPivot(speed));
-        } 
-        else {
-            leftBootPivot.rotateOnAxis(axis, target - bootsPivotAngle);
-            rightBootPivot.rotateOnAxis(axis, target - bootsPivotAngle);
-            bootsPivotAngle = target;
-            bootsPivotRotating = false;
-        }
-    }
-
-/*
-    function rotateLatchPivot(speed) {
-        latchPivotRotating = true;
-        const axis = new THREE.Vector3(0, 1, 0);
-        const target = speed > 0 ? Math.PI : 0;
-        if ((speed > 0 && latchPivotAngle + speed <= target) || (speed < 0 && latchPivotAngle + speed >= target)) {
-            latchPivot.rotateOnAxis(axis, speed);
-            latchPivotAngle += speed;
-            requestAnimationFrame(() => rotateLatchPivot(speed));
-        } else {
-            latchPivot.rotateOnAxis(axis, target - latchPivotAngle);
-            latchPivotAngle = target;
-            latchPivotRotating = false;
-        }
-    }
-*/
-
 }
 
 ///////////////////////
@@ -509,3 +415,107 @@ function onKeyUp(e){
         return;
     keys[e.keyCode] = false;
 }
+
+/////////////////////////
+/* MOVEMENT FUNCTIONS */
+/////////////////////////
+
+function moveArms(speed){
+    armsMoving = true;
+    const target = speed > 0 ? 80 : 0;
+    if ((speed > 0 && armsOffset + speed <= target) || (speed < 0 && armsOffset + speed >= target)) {
+        uLeftArm.position.x += speed;
+        uRightArm.position.x -= speed;
+        armsOffset += speed;
+        requestAnimationFrame(() => moveArms(speed));
+    } else {
+        uLeftArm.position.x += target - armsOffset;
+        uRightArm.position.x -= target - armsOffset;
+        armsOffset = target;
+        armsMoving = false;
+    }
+}
+
+// TODO: is this function ok?
+function rotateHeadPivot(speed){
+    headPivotRotating = true;
+    const axis = new THREE.Vector3(-1, 0, 0);
+    const target = speed > 0 ? Math.PI : 0;
+    if ((speed > 0 && headPivotAngle + speed <= target) || (speed < 0 && headPivotAngle + speed >= target)) {
+        headPivot.rotateOnAxis(axis, speed);
+        headPivotAngle += speed;
+        requestAnimationFrame(() => rotateHeadPivot(speed));
+    } else {
+        headPivot.rotateOnAxis(axis, target - headPivotAngle);
+        headPivotAngle = target;
+        headPivotRotating = false;
+    }
+}
+
+
+function rotateThighsPivot(speed) {
+    thighsPivotRotating = true;
+    const axis = new THREE.Vector3(1, 0, 0);
+    const target = speed > 0 ? Math.PI/2 : 0;
+    if ((speed > 0 && thighsPivotAngle + speed <= target)  || (speed < 0 && thighsPivotAngle + speed >= target)) {
+        thighsPivot.rotateOnAxis(axis, speed);
+        thighsPivotAngle += speed;
+        requestAnimationFrame(() => rotateThighsPivot(speed));
+    }
+    else {
+        thighsPivot.rotateOnAxis(axis, target - thighsPivotAngle);
+        thighsPivotAngle = target;
+        thighsPivotRotating = false;
+    }
+}
+
+function rotateBootsPivot(speed){
+    bootsPivotRotating = true;
+    const axis = new THREE.Vector3(1, 0, 0);
+    const target = speed > 0 ? Math.PI/2 : 0;
+    if ((speed > 0 && bootsPivotAngle + speed <= target) || (speed < 0 && bootsPivotAngle + speed >= target)) {
+        rightBootPivot.rotateOnAxis(axis, speed);
+        leftBootPivot.rotateOnAxis(axis, speed);
+        bootsPivotAngle += speed;
+        requestAnimationFrame(() => rotateBootsPivot(speed));
+    } 
+    else {
+        leftBootPivot.rotateOnAxis(axis, target - bootsPivotAngle);
+        rightBootPivot.rotateOnAxis(axis, target - bootsPivotAngle);
+        bootsPivotAngle = target;
+        bootsPivotRotating = false;
+    }
+}
+
+/*
+
+function moveTrailer(axis, speed){
+    trailerMoving = true;
+    const target = speed > 0 ? 80 : 0;
+    if ((speed > 0 && trailerOffset + speed <= target) || (speed < 0 && trailerOffset + speed >= target)) {
+        trailer.position[axis] += speed;
+        trailerOffset += speed;
+        requestAnimationFrame(() => moveTrailer(axis, speed));
+    } else {
+        trailer.position[axis] += target - trailerOffset;
+        trailerOffset = target;
+        trailerMoving = false;
+    }
+}
+
+function rotateLatchPivot(speed) {
+    latchPivotRotating = true;
+    const axis = new THREE.Vector3(0, 1, 0);
+    const target = speed > 0 ? Math.PI : 0;
+    if ((speed > 0 && latchPivotAngle + speed <= target) || (speed < 0 && latchPivotAngle + speed >= target)) {
+        latchPivot.rotateOnAxis(axis, speed);
+        latchPivotAngle += speed;
+        requestAnimationFrame(() => rotateLatchPivot(speed));
+    } else {
+        latchPivot.rotateOnAxis(axis, target - latchPivotAngle);
+        latchPivotAngle = target;
+        latchPivotRotating = false;
+    }
+}
+
+*/
