@@ -24,11 +24,8 @@ let movementSpeed = 0.2;
 let armsMoving = false;
 let armsOffset = 0;
 let rotationSpeed = 0.008;
-let headPivotRotating = false;
 let headPivotAngle = 0;
-let thighsPivotRotating = false;
 let thighsPivotAngle = 0;
-let bootsPivotRotating = false;
 let bootsPivotAngle = 0;
 
 // Trailer components
@@ -241,46 +238,46 @@ function update(){
                 // Arms Movement Controls (keys E, D)
                 case "69": // E
                 case "101": // e
-                    if (armsOffset < 80 && !armsMoving)
-                        moveArms(movementSpeed);
+                    if (armsOffset < 80)
+                        requestAnimationFrame(() => moveArms(movementSpeed));
                     break;
                 case "68": // D
                 case "100": // d
-                    if (armsOffset > 0 && !armsMoving)
-                        moveArms(-movementSpeed);
+                    if (armsOffset > 0)
+                        requestAnimationFrame(() => moveArms(-movementSpeed));
                     break;
                 // Head Rotation Controls (keys R, F)
                 case "82": // R
                 case "114": // r
-                    if (headPivotAngle < Math.PI && !headPivotRotating)
-                        rotateHeadPivot(rotationSpeed);
+                    if (headPivotAngle < Math.PI)
+                        requestAnimationFrame(() => rotateHeadPivot(rotationSpeed));
                     break;
                 case "70": // F
                 case "102": // f
-                    if (headPivotAngle > 0 && !headPivotRotating)
-                        rotateHeadPivot(-rotationSpeed);
+                    if (headPivotAngle > 0)
+                        requestAnimationFrame(() => rotateHeadPivot(-rotationSpeed));
                     break;
                 // Thighs Rotation Controls (keys W, S)
                 case "87": // W
                 case "119": // w
-                    if (thighsPivotAngle < Math.PI/2 && !thighsPivotRotating)
-                        rotateThighsPivot(rotationSpeed);
+                    if (thighsPivotAngle < Math.PI/2)
+                        requestAnimationFrame(() => rotateThighsPivot(rotationSpeed));
                     break;
                 case "83": //S
                 case "115": //s
-                    if (thighsPivotAngle > 0 && !thighsPivotRotating)
-                        rotateThighsPivot(-rotationSpeed);
+                    if (thighsPivotAngle > 0)
+                        requestAnimationFrame(() => rotateThighsPivot(-rotationSpeed));
                     break;
                 // Boots Rotation Controls (keys Q, A)
                 case "81": // Q
                 case "113": // q
-                    if (bootsPivotAngle < Math.PI/2 && !bootsPivotRotating)
-                        rotateBootsPivot(rotationSpeed);
+                    if (bootsPivotAngle < Math.PI/2)
+                        requestAnimationFrame(() => rotateBootsPivot(rotationSpeed));
                     break;
                 case "65": //A
                 case "97": //a
-                    if (bootsPivotAngle > 0 && !bootsPivotRotating)
-                        rotateBootsPivot(-rotationSpeed);
+                    if (bootsPivotAngle > 0)
+                        requestAnimationFrame(() => rotateBootsPivot(-rotationSpeed));  
                     break;
                 /*// Trailer movement (arrow keys - left, right, down, up)
                 case "37": // left arrow
@@ -350,9 +347,9 @@ function init(){
 /////////////////////
 function animate(){
 
+    requestAnimationFrame(animate);
     update();
     render();
-    requestAnimationFrame(animate);
 }
 
 ////////////////////////////
@@ -421,69 +418,37 @@ function onKeyUp(e){
 /////////////////////////
 
 function moveArms(speed){
-    armsMoving = true;
     const target = speed > 0 ? 80 : 0;
     if ((speed > 0 && armsOffset + speed <= target) || (speed < 0 && armsOffset + speed >= target)) {
         uLeftArm.position.x += speed;
         uRightArm.position.x -= speed;
         armsOffset += speed;
-        requestAnimationFrame(() => moveArms(speed));
-    } else {
-        uLeftArm.position.x += target - armsOffset;
-        uRightArm.position.x -= target - armsOffset;
-        armsOffset = target;
-        armsMoving = false;
     }
 }
 
-// TODO: is this function ok?
 function rotateHeadPivot(speed){
-    headPivotRotating = true;
-    const axis = new THREE.Vector3(-1, 0, 0);
     const target = speed > 0 ? Math.PI : 0;
     if ((speed > 0 && headPivotAngle + speed <= target) || (speed < 0 && headPivotAngle + speed >= target)) {
-        headPivot.rotateOnAxis(axis, speed);
+        headPivot.rotation.x -= speed;
         headPivotAngle += speed;
-        requestAnimationFrame(() => rotateHeadPivot(speed));
-    } else {
-        headPivot.rotateOnAxis(axis, target - headPivotAngle);
-        headPivotAngle = target;
-        headPivotRotating = false;
     }
 }
 
 
 function rotateThighsPivot(speed) {
-    thighsPivotRotating = true;
-    const axis = new THREE.Vector3(1, 0, 0);
     const target = speed > 0 ? Math.PI/2 : 0;
     if ((speed > 0 && thighsPivotAngle + speed <= target)  || (speed < 0 && thighsPivotAngle + speed >= target)) {
-        thighsPivot.rotateOnAxis(axis, speed);
+        thighsPivot.rotation.x += speed;
         thighsPivotAngle += speed;
-        requestAnimationFrame(() => rotateThighsPivot(speed));
-    }
-    else {
-        thighsPivot.rotateOnAxis(axis, target - thighsPivotAngle);
-        thighsPivotAngle = target;
-        thighsPivotRotating = false;
     }
 }
 
 function rotateBootsPivot(speed){
-    bootsPivotRotating = true;
-    const axis = new THREE.Vector3(1, 0, 0);
     const target = speed > 0 ? Math.PI/2 : 0;
     if ((speed > 0 && bootsPivotAngle + speed <= target) || (speed < 0 && bootsPivotAngle + speed >= target)) {
-        rightBootPivot.rotateOnAxis(axis, speed);
-        leftBootPivot.rotateOnAxis(axis, speed);
+        rightBootPivot.rotation.x += speed;
+        leftBootPivot.rotation.x += speed;
         bootsPivotAngle += speed;
-        requestAnimationFrame(() => rotateBootsPivot(speed));
-    } 
-    else {
-        leftBootPivot.rotateOnAxis(axis, target - bootsPivotAngle);
-        rightBootPivot.rotateOnAxis(axis, target - bootsPivotAngle);
-        bootsPivotAngle = target;
-        bootsPivotRotating = false;
     }
 }
 
