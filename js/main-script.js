@@ -17,30 +17,28 @@ const cameras = {front: null, side: null, top: null, iso: null, persp: null};
 let keys = {};
 
 // Materials
-let materials = [];
+let materials = []; // TODO: do a dictionary
 
 // RoboTruck components
-let torsoPivot, headPivot, lArmPivot, rArmPivot, abdomenPivot, waistPivot,
-    lThighPivot, rThighPivot, lLegPivot, rLegPivot, lBootPivot, rBootPivot;
+let torso3D, head3D, lArm3D, rArm3D, abdomen3D, waist3D, thighs3D, legs3D, boots3D;
 
 // Trailer components
-let trailer, trailerBody, plate, wheelRig, couplerBody
-let latchPivot;
-let latchPivotRotating = false;
+let trailer3D, plate3D, chassis3D, couplerBody, coupler3D1, coupler3D2, latch3D;
 
 // Movements and Rotations
 let movementSpeed = 0.5;
 let armsOffset = 0;
 let rotationSpeed = 0.008;
-let headPivotAngle = 0;
-let thighsPivotsAngle = 0;
-let bootsPivotsAngle = 0;
+let head3DAngle = 0;
+let thighs3DAngle = 0;
+let boots3DAngle = 0;
+let coupler3DAngle = 0;
 
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
 
-function createScene(){
+function createScene() {
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xF0EAD6);
@@ -57,7 +55,7 @@ function createScene(){
 /* CREATE CAMERA(S) */
 //////////////////////
 
-function createOrthographicCamera(x, y, z, near, far){
+function createOrthographicCamera(x, y, z, near, far) {
 
     const width = window.innerWidth / 2;
     const height = window.innerHeight / 2;
@@ -67,7 +65,7 @@ function createOrthographicCamera(x, y, z, near, far){
     return camera;
 }
 
-function createPerspectiveCamera(x, y, z, near, far, fov){
+function createPerspectiveCamera(x, y, z, near, far, fov) {
 
     const camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, near, far);
     camera.position.set(x, y, z);
@@ -83,15 +81,15 @@ function createPerspectiveCamera(x, y, z, near, far, fov){
 /* CREATE OBJECT3D(S) */
 ////////////////////////
 
-function createPivot(parent, x = 0, y = 0, z = 0){
+function createObject3D(parent, x = 0, y = 0, z = 0) {
 
-    const pivot = new THREE.Object3D();
-    pivot.position.set(x, y, z);
-    parent.add(pivot);
-    return pivot;
+    const obj3D = new THREE.Object3D();
+    obj3D.position.set(x, y, z);
+    parent.add(obj3D);
+    return obj3D;
 }
 
-function createCube(w, h, d, color, rotAxis, parent, x = 0, y = 0, z = 0){
+function createCube(w, h, d, color, rotAxis, parent, x = 0, y = 0, z = 0) {
 
     const geometry = new THREE.BoxGeometry(w, h, d);
     const material = new THREE.MeshBasicMaterial({ color: color });
@@ -104,7 +102,7 @@ function createCube(w, h, d, color, rotAxis, parent, x = 0, y = 0, z = 0){
     return cube;
 }
 
-function createCylinder(rt, rb, h, color, rotAxis, parent, x = 0, y = 0, z = 0){
+function createCylinder(rt, rb, h, color, rotAxis, parent, x = 0, y = 0, z = 0) {
 
     // TODO: should we do CylinderGeometry(rt, rb, h, 32) to make it look smoother?
     const geometry = new THREE.CylinderGeometry(rt, rb, h);
@@ -118,107 +116,98 @@ function createCylinder(rt, rb, h, color, rotAxis, parent, x = 0, y = 0, z = 0){
     return cylinder;
 }
 
-function createRoboTruck(){
+function createRoboTruck() {
 
-    // Torso Pivot
-    torsoPivot = createPivot(scene, 0, 0, 0);
+    // Torso 3D (parent: scene; children: torso, head 3D, arms 3Ds, abdomen 3D)
+    torso3D = createObject3D(scene, 0, 0, 0);
     const torsoW = 240, torsoH = 160, torsoD = 160;
-    createCube(torsoW, torsoH, torsoD, 0x808080, null, torsoPivot);
-    // Head Pivot (parent: torsoPivot; children: head, eyes, antennas)
-    headPivot = createPivot(torsoPivot, 0, torsoH/2, -torsoD/2);
+    createCube(torsoW, torsoH, torsoD, 0x808080, null, torso3D);
+    // Head 3D (parent: torso 3D; children: head, eyes, antennas)
+    head3D = createObject3D(torso3D, 0, torsoH/2, -torsoD/2);
     const headW = 80, headH = 80, headD = 80;
-    createCube(headW, headH, headD, 0xe8Beac, null, headPivot, 0, headH/2, headD/2);
+    createCube(headW, headH, headD, 0xe8Beac, null, head3D, 0, headH/2, headD/2);
     const eyeW = 20, eyeH = 40/3, eyeD = 10;
-    createCube(eyeW, eyeH, eyeD, 0xffffff, null, headPivot, -headW/4, 3*headH/5, headD);
-    createCube(eyeW, eyeH, eyeD, 0xffffff, null, headPivot, headW/4, 3*headH/5, headD);
+    createCube(eyeW, eyeH, eyeD, 0xffffff, null, head3D, -headW/4, 3*headH/5, headD);
+    createCube(eyeW, eyeH, eyeD, 0xffffff, null, head3D, headW/4, 3*headH/5, headD);
     const antennaW = 40/3, antennaH = 40, antennaD = 40/3;
-    createCube(antennaW, antennaH, antennaD, 0xff0000, null, headPivot, -headW/4, headH, 0);
-    createCube(antennaW, antennaH, antennaD, 0xff0000, null, headPivot, headW/4, headH, 0);
-    // Arms Pivots (parent: torsoPivot; children: upper arms, exhaust pipes, lower arms)
-    lArmPivot = createPivot(torsoPivot, -torsoW/2, 0, -torsoD/2);
-    rArmPivot = createPivot(torsoPivot, torsoW/2, 0, -torsoD/2);
+    createCube(antennaW, antennaH, antennaD, 0xff0000, null, head3D, -headW/4, headH, 0);
+    createCube(antennaW, antennaH, antennaD, 0xff0000, null, head3D, headW/4, headH, 0);
+    // Arms 3Ds (parent: torso 3D; children: upper arms, exhaust pipes, lower arms)
+    lArm3D = createObject3D(torso3D, -torsoW/2, 0, -torsoD/2);
+    rArm3D = createObject3D(torso3D, torsoW/2, 0, -torsoD/2);
     const uArmW = 80, uArmH = 160, uArmD = 80;
-    createCube(uArmW, uArmH, uArmD, 0x035f53, null, lArmPivot, -uArmW/2, 0, -uArmD/2);
-    createCube(uArmW, uArmH, uArmD, 0x035f53, null, rArmPivot, uArmW/2, 0, -uArmD/2);
+    createCube(uArmW, uArmH, uArmD, 0x035f53, null, lArm3D, -uArmW/2, 0, -uArmD/2);
+    createCube(uArmW, uArmH, uArmD, 0x035f53, null, rArm3D, uArmW/2, 0, -uArmD/2);
     const pipeR = 10, pipeH = 120;
-    createCylinder(pipeR, pipeR, pipeH, 0x808080, null, lArmPivot, -pipeR-uArmW, 3*uArmH/8, pipeR-uArmD);
-    createCylinder(pipeR, pipeR, pipeH, 0x808080, null, rArmPivot, pipeR+uArmW, 3*uArmH/8, pipeR-uArmD);
+    createCylinder(pipeR, pipeR, pipeH, 0x808080, null, lArm3D, -pipeR-uArmW, 3*uArmH/8, pipeR-uArmD);
+    createCylinder(pipeR, pipeR, pipeH, 0x808080, null, rArm3D, pipeR+uArmW, 3*uArmH/8, pipeR-uArmD);
     const lArmW = 80, lArmH = 80, lArmD = 240;
-    createCube(lArmW, lArmH, lArmD, 0xffae42, null, lArmPivot, -uArmW/2, -lArmH/2-uArmH/2, lArmD/2-uArmD);
-    createCube(lArmW, lArmH, lArmD, 0xffae42, null, rArmPivot, uArmW/2, -lArmH/2-uArmH/2, lArmD/2-uArmD);
-    // Abdomen Pivot (parent: torso pivot; children: abdomen, waist pivot)
-    abdomenPivot = createPivot(torsoPivot, 0, -torsoH/2, 0);
+    createCube(lArmW, lArmH, lArmD, 0xffae42, null, lArm3D, -uArmW/2, -lArmH/2-uArmH/2, lArmD/2-uArmD);
+    createCube(lArmW, lArmH, lArmD, 0xffae42, null, rArm3D, uArmW/2, -lArmH/2-uArmH/2, lArmD/2-uArmD);
+    // Abdomen 3D (parent: torso 3D; children: abdomen, waist 3D)
+    abdomen3D = createObject3D(torso3D, 0, -torsoH/2, 0);
     const abdomenW = 80, abdomenH = 80, abdomenD = 160;
-    createCube(abdomenW, abdomenH, abdomenD, 0x035f53, null, abdomenPivot, 0, -abdomenH/2, 0);
-    // Waist Pivot (parent: abdomen pivot; children: waist, front wheels, thighs pivots)
-    waistPivot = createPivot(abdomenPivot, 0, -abdomenH, abdomenD/8);
+    createCube(abdomenW, abdomenH, abdomenD, 0x035f53, null, abdomen3D, 0, -abdomenH/2, 0);
+    // Waist 3D (parent: abdomen 3D; children: waist, front wheels, thighs 3D)
+    waist3D = createObject3D(abdomen3D, 0, -abdomenH, abdomenD/8);
     const waistW = 240, waistH = 80, waistD = 120;
-    createCube(waistW, waistH, waistD, 0x808080, null, waistPivot, 0, -waistH/2, 0);
+    createCube(waistW, waistH, waistD, 0x808080, null, waist3D, 0, -waistH/2, 0);
     const wheelR = 40, wheelH = 40;
     const rotAxis = new THREE.Vector3(0, 0, 1);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, waistPivot, -wheelH/2-waistW/2, -3*waistH/4, 0);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, waistPivot, wheelH/2+waistW/2, -3*waistH/4, 0);
-    // Thighs Pivots (parent: waist pivot; children: thighs, legs pivots)
-    lThighPivot = createPivot(waistPivot, -waistW/3, -waistH, -waistD/2);
-    rThighPivot = createPivot(waistPivot, waistW/3, -waistH, -waistD/2);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, waist3D, -wheelH/2-waistW/2, -3*waistH/4, 0);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, waist3D, wheelH/2+waistW/2, -3*waistH/4, 0);
+    // Thighs 3D (parent: waist 3D; children: thighs, legs 3D)
+    thighs3D = createObject3D(waist3D, 0, -waistH, -waistD/2);
     const thighW = 40, thighH = 120, thighD = 40;
-    createCube(thighW, thighH, thighD, 0x3492da, null, lThighPivot, 0, -thighH/2, -thighD/2);
-    createCube(thighW, thighH, thighD, 0x3492da, null, rThighPivot, 0, -thighH/2, -thighD/2);
-    // Legs Pivots (parents: thighs pivots; children: legs, back wheels, trailer socket, boots pivots)
-    lLegPivot = createPivot(lThighPivot, 0, -thighH, -thighD);
-    rLegPivot = createPivot(rThighPivot, 0, -thighH, -thighD);
+    createCube(thighW, thighH, thighD, 0x3492da, null, thighs3D, -waistW/3, -thighH/2, -thighD/2);
+    createCube(thighW, thighH, thighD, 0x3492da, null, thighs3D, waistW/3, -thighH/2, -thighD/2);
+    // Legs 3D (parents: thighs 3D; children: legs, back wheels, trailer socket, boots 3D)
+    legs3D = createObject3D(thighs3D, 0, -thighH, -thighD);
     const legW = 80, legH = 320, legD = 80;
-    createCube(legW, legH, legD, 0x3630a6, null, lLegPivot, 0, -legH/2, 0);
-    createCube(legW, legH, legD, 0x3630a6, null, rLegPivot, 0, -legH/2, 0);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, lLegPivot, -wheelH/2-legW/2, -7*legH/16, legD/4);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, lLegPivot, -wheelH/2-legW/2, -13*legH/16, legD/4);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, rLegPivot, wheelH/2+legW/2, -7*legH/16, legD/4);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, rLegPivot, wheelH/2+legW/2, -13*legH/16, legD/4);
+    createCube(legW, legH, legD, 0x3630a6, null, legs3D, -waistW/3, -legH/2, 0);
+    createCube(legW, legH, legD, 0x3630a6, null, legs3D, waistW/3, -legH/2, 0);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, legs3D, -waistW/3-wheelH/2-legW/2, -7*legH/16, legD/4);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, legs3D, -waistW/3-wheelH/2-legW/2, -13*legH/16, legD/4);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, legs3D, waistW/3+wheelH/2+legW/2, -7*legH/16, legD/4);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, legs3D, waistW/3+wheelH/2+legW/2, -13*legH/16, legD/4);
     const socketW = 40, socketH = 40, socketD = 40;
-    createCube(socketW, socketH, socketD, 0xdac134, null, lLegPivot, legW/4, -5*legH/16, -3*socketD/2);
-    createCube(socketW, socketH, socketD, 0xdac134, null, rLegPivot, -legW/4, -5*legH/16, -3*socketD/2);
-    // Boots Pivots (parents: legs pivots; children: boots)
-    lBootPivot = createPivot(lLegPivot, 0, -legH, legD/2);
-    rBootPivot = createPivot(rLegPivot, 0, -legH, legD/2);
+    createCube(socketW, socketH, socketD, 0xdac134, null, legs3D, -waistW/3+legW/4, -5*legH/16, -3*socketD/2);
+    createCube(socketW, socketH, socketD, 0xdac134, null, legs3D, waistW/3-legW/4, -5*legH/16, -3*socketD/2);
+    // Boots 3D (parents: legs 3D; children: boots)
+    boots3D = createObject3D(legs3D, 0, -legH, legD/2);
     const bootW = 80, bootH = 40, bootD = 60;
-    createCube(bootW, bootH, bootD, 0x131056, null, lBootPivot, 0, -bootH/2, bootD/2);
-    createCube(bootW, bootH, bootD, 0x131056, null, rBootPivot, 0, -bootH/2, bootD/2);
+    createCube(bootW, bootH, bootD, 0x131056, null, boots3D, -waistW/3, -bootH/2, bootD/2);
+    createCube(bootW, bootH, bootD, 0x131056, null, boots3D, waistW/3, -bootH/2, bootD/2);
 }
 
-function createTrailer(){
+function createTrailer() {
 
-    // create new Object3D for the trailer
-    trailer = new THREE.Object3D();
-    trailer.position.set(300, 0, -1080);
-    // add the trailer to the scene
-    scene.add(trailer);
-
-
+    // Trailer 3D (parent: scene; children: body, plate 3D)
+    trailer3D = createObject3D(scene, 300, 40, -1080);
     const bodyW = 240, bodyH = 280, bodyD = 1160;
-    trailerBody = createCube(bodyW, bodyH, bodyD, 0xff606b, null, trailer);
-
+    createCube(bodyW, bodyH, bodyD, 0xff606b, null, trailer3D);
+    // Plate 3D (parent: trailer 3D; children: plate, chassis 3D)
+    plate3D = createObject3D(trailer3D, 0, -bodyH/2, -bodyD/2);
     const plateW = 240, plateH = 40, plateD = 760;
-    // color is light gray hex = 0x808080
-    plate = createCube(plateW, plateH, plateD, 0x808080, null, trailer, 0, -bodyH/2 - plateH/2, -bodyD/2 + plateD/2);
-
-    const wheelRigW = 240, wheelRigH = 80, wheelRigD = 400;
-    // color is dark gray hex = 0x 858585
-    wheelRig = createCube(wheelRigW, wheelRigH, wheelRigD, 0x2222222, null, trailer, 0, -bodyH/2 - plateH - wheelRigH/2,  -bodyD/2 + wheelRigD/2);
-
+    createCube(plateW, plateH, plateD, 0x808080, null, plate3D, 0, -plateH/2, plateD/2);
+    // Chassis 3D (parent: plate 3D; children: chassis, wheels)
+    chassis3D = createObject3D(plate3D, 0, -plateH, 0);
+    const chassisW = 240, chassisH = 80, chassisD = 400;
+    createCube(chassisW, chassisH, chassisD, 0x222222, null, chassis3D, 0, -chassisH/2, chassisD/2);
     const wheelR = 40, wheelH = 40;
     const rotAxis = new THREE.Vector3(0, 0, 1);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, -wheelH/2-wheelRigW/2, -wheelRigH/4, -wheelRigD/5);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, wheelH/2+wheelRigW/2, -wheelRigH/4, -wheelRigD/5);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, -wheelH/2-wheelRigW/2, -wheelRigH/4, wheelRigD/5);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, wheelRig, wheelH/2+wheelRigW/2, -wheelRigH/4, wheelRigD/5);
-
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, chassis3D, -wheelH/2-chassisW/2, -3*chassisH/4, 3*chassisD/10);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, chassis3D, wheelH/2+chassisW/2, -3*chassisH/4, 3*chassisD/10);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, chassis3D, -wheelH/2-chassisW/2, -3*chassisH/4, 7*chassisD/10);
+    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, chassis3D, wheelH/2+chassisW/2, -3*chassisH/4, 7*chassisD/10);
+    // TODO: fix this part later
     const couplerW = 80, couplerH = 40, couplerD = 120;
     const couplerLatchW = 40, couplerLatchH = 40, couplerLatchD = 40;
-    couplerBody = createCube(couplerW, couplerH, couplerD, 0x808080, null, trailerBody, 0, -bodyH/2 - couplerH/2, bodyD/2 - couplerD/2 - couplerLatchD);
-    let couplerPivot1 = createPivot(couplerBody, -couplerW/2, 0, couplerD/2);
-    let couplerPivot2 = createPivot(couplerBody, couplerW/2, 0, couplerD/2);
-    let couplerLatch1 = createCube(couplerLatchW, couplerLatchH, couplerLatchD, 0x808080, null, couplerPivot1, couplerLatchW/2, 0, couplerLatchD/2);
-    let couplerLatch2 = createCube(couplerLatchW, couplerLatchH, couplerLatchD, 0x808080, null, couplerPivot2, -couplerLatchW/2, 0, couplerLatchD/2);
+    couplerBody = createCube(couplerW, couplerH, couplerD, 0x808080, null, trailer3D, 0, -bodyH/2 - couplerH/2, bodyD/2 - couplerD/2 - couplerLatchD);
+    coupler3D1 = createObject3D(trailer3D, -couplerW/2, -bodyH/2 - couplerH/2 , bodyD/2 - couplerLatchD);
+    coupler3D2 = createObject3D(trailer3D, couplerW/2, -bodyH/2 - couplerH/2 , bodyD/2 - couplerLatchD);
+    let couplerLatch1 = createCube(couplerLatchW, couplerLatchH, couplerLatchD, 0x101010, null, coupler3D1, couplerLatchW/2, 0, couplerLatchD/2);
+    let couplerLatch2 = createCube(couplerLatchW, couplerLatchH, couplerLatchD, 0x101010, null, coupler3D2, -couplerLatchW/2, 0, couplerLatchD/2);
 
 }
 
@@ -232,14 +221,14 @@ function checkCollisions() {
 ///////////////////////
 /* HANDLE COLLISIONS */
 ///////////////////////
-function handleCollisions(){
+function handleCollisions() {
 
 }
 
 ////////////
 /* UPDATE */
 ////////////
-function update(delta){
+function update(delta) {
     for (let k in keys) {
         if (keys[k] == true) {
             switch (k) {
@@ -257,219 +246,246 @@ function update(delta){
                 // Head Rotation Controls (keys R, F)
                 case "82": // R
                 case "114": // r
-                    if (headPivotAngle < Math.PI)
-                        requestAnimationFrame(() => rotateHeadPivot(rotationSpeed * 2, delta));
+                    if (head3DAngle < Math.PI)
+                        requestAnimationFrame(() => rotateHead(rotationSpeed * 2, delta));
                     break;
                 case "70": // F
                 case "102": // f
-                    if (headPivotAngle > 0)
-                        requestAnimationFrame(() => rotateHeadPivot(-rotationSpeed * 2, delta));
+                    if (head3DAngle > 0)
+                        requestAnimationFrame(() => rotateHead(-rotationSpeed * 2, delta));
                     break;
                 // Thighs Rotation Controls (keys W, S)
                 case "87": // W
                 case "119": // w
-                    if (thighsPivotsAngle < Math.PI/2)
-                        requestAnimationFrame(() => rotateThighsPivots(rotationSpeed, delta));
+                    if (thighs3DAngle < Math.PI / 2)
+                        requestAnimationFrame(() => rotateThighs(rotationSpeed, delta));
                     break;
-                case "83": //S
-                case "115": //s
-                    if (thighsPivotsAngle > 0)
-                        requestAnimationFrame(() => rotateThighsPivots(-rotationSpeed, delta));
+                case "83": // S
+                case "115": // s
+                    if (thighs3DAngle > 0)
+                        requestAnimationFrame(() => rotateThighs(-rotationSpeed, delta));
                     break;
                 // Boots Rotation Controls (keys Q, A)
                 case "81": // Q
                 case "113": // q
-                    if (bootsPivotsAngle < Math.PI/2)
-                        requestAnimationFrame(() => rotateBootsPivots(rotationSpeed, delta));
+                    if (boots3DAngle < Math.PI / 2)
+                        requestAnimationFrame(() => rotateBoots(rotationSpeed, delta));
                     break;
-                case "65": //A
-                case "97": //a
-                    if (bootsPivotsAngle > 0)
-                        requestAnimationFrame(() => rotateBootsPivots(-rotationSpeed, delta));
+                case "65": // A
+                case "97": // a
+                    if (boots3DAngle > 0)
+                        requestAnimationFrame(() => rotateBoots(-rotationSpeed, delta));
                     break;
-                case "37": // left arrow
-                        moveTrailer("x", movementSpeed * 4, delta);
+                // Trailer Movement Controls (keys left, right, down, up)
+                case "37": // left
+                    moveTrailer("x", movementSpeed * 20, delta);
                     break;
-                case "39": // right arrow
-                        moveTrailer("x", -movementSpeed * 4, delta);
+                case "39": // right
+                    moveTrailer("x", -movementSpeed * 20, delta);
                     break;
-                case "40": // down arrow
-                        moveTrailer("z", movementSpeed * 4, delta);
+                case "40": // down
+                    moveTrailer("z", movementSpeed * 20, delta);
                     break;
-                case "38": // up arrow
-                        moveTrailer("z", -movementSpeed * 4, delta);
+                case "38": // up
+                    moveTrailer("z", -movementSpeed * 20, delta);
                     break;
+                case "72": // H
+                case "104": // h
+                    rotateCoupler(rotationSpeed, delta);
+                case "89": // Y
+                case "121": // y
+                    rotateCoupler(-rotationSpeed, delta);
             }
         }
     }
 }
 
 /////////////
-/* DISPLAY */
-/////////////
-function render(){
+    /* DISPLAY */
 
-    renderer.render(scene, camera);
-}
+/////////////
+    function render() {
+
+        renderer.render(scene, camera);
+    }
 
 ////////////////////////////////
-/* INITIALIZE ANIMATION CYCLE */
+    /* INITIALIZE ANIMATION CYCLE */
 ////////////////////////////////
 // noinspection JSUnresolvedReference
-function init(){
+    function init() {
 
-    renderer = new THREE.WebGLRenderer({
-        antialias: true
-    });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+        renderer = new THREE.WebGLRenderer({
+            antialias: true
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-    createScene();
+        createScene();
 
-    // Create all cameras and set default camera
-    cameras.front = createOrthographicCamera(0, 0, 500, 1, 5000);
-    cameras.side = createOrthographicCamera(500, 0, 0, 1, 5000);
-    cameras.top = createOrthographicCamera(0, 500, 0, 1, 5000);
-    cameras.iso = createOrthographicCamera(500, 500, 500, 1, 5000);
-    cameras.persp = createPerspectiveCamera(500, 500, 750, 1, 5000, 80);
-    camera = cameras.front;
+        // Create all cameras and set default camera
+        cameras.front = createOrthographicCamera(0, 0, 500, 0, 5000);
+        cameras.side = createOrthographicCamera(500, 0, 0, 0, 5000);
+        cameras.top = createOrthographicCamera(0, 500, 0, 0, 5000);
+        cameras.iso = createOrthographicCamera(500, 500, 500, 0, 5000);
+        cameras.persp = createPerspectiveCamera(500, 500, 750, 0, 5000, 80);
+        camera = cameras.front;
 
-    previousTime = performance.now();
+        previousTime = performance.now();
 
-    // TODO: remove this controls line later
-    //const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        // TODO: remove this controls line later
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        // disable arrow keys for camera controls
+        controls.keys = {
+            LEFT: null, //left arrow
+            UP: null, // up arrow
+            RIGHT: null, // right arrow
+            BOTTOM: null // down arrow
+        }
 
-    render();
+        render();
 
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('resize', onResize);
-    window.addEventListener('keyup', onKeyUp);
-}
+        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('resize', onResize);
+        window.addEventListener('keyup', onKeyUp);
+    }
+
 
 /////////////////////
-/* ANIMATION CYCLE */
+    /* ANIMATION CYCLE */
+
 /////////////////////
-function animate(){
+    function animate() {
 
-    requestAnimationFrame(animate);
-    currentTime = performance.now();
-    let delta = (currentTime - previousTime) / 20;
-    previousTime = currentTime;
-    update(delta);
-    render();
-}
+        requestAnimationFrame(animate);
+        currentTime = performance.now();
+        let delta = (currentTime - previousTime) / 20;
+        previousTime = currentTime;
+        update(delta);
+        render();
+    }
 
 ////////////////////////////
-/* RESIZE WINDOW CALLBACK */
+    /* RESIZE WINDOW CALLBACK */
+
 ////////////////////////////
 
-function onResize(){
+    function onResize() {
 
-    // TODO: how to keep resize information when changing camera?
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    if (window.innerHeight > 0 && window.innerWidth > 0) {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
+        // TODO: how to keep resize information when changing camera?
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        if (window.innerHeight > 0 && window.innerWidth > 0) {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+        }
     }
-}
 
 ///////////////////////
-/* KEY DOWN CALLBACK */
+    /* KEY DOWN CALLBACK */
+
 ///////////////////////
 
-function onKeyDown(e){
+    function onKeyDown(e) {
 
-    switch (e.keyCode) {
-        // Camera Controls (keys 1, 2, 3, 4, 5)
-        case 49: // 1
-            camera = cameras.front;
-            let controls = new THREE.OrbitControls(camera, renderer.domElement);
-            break;
-        case 50: // 2
-            camera = cameras.side;
-            break;
-        case 51: // 3
-            camera = cameras.top;
-            break;
-        case 52: // 4
-            camera = cameras.iso;
-            break;
-        case 53: // 5
-            camera = cameras.persp;
-            break;
-        // Visual Representation Controls (key 6)
-        case 54: // 6
-            materials.forEach(function (material) {
-                material.wireframe = !material.wireframe;
-            });
-            break;
-        default:
-            keys[e.keyCode] = true;
+        switch (e.keyCode) {
+            // Camera Controls (keys 1, 2, 3, 4, 5)
+            case 49: // 1
+                camera = cameras.front;
+                let controls = new THREE.OrbitControls(camera, renderer.domElement);
+                break;
+            case 50: // 2
+                camera = cameras.side;
+                break;
+            case 51: // 3
+                camera = cameras.top;
+                break;
+            case 52: // 4
+                camera = cameras.iso;
+                break;
+            case 53: // 5
+                camera = cameras.persp;
+                break;
+            // Visual Representation Controls (key 6)
+            case 54: // 6
+                materials.forEach(function (material) {
+                    material.wireframe = !material.wireframe;
+                });
+                break;
+            default:
+                keys[e.keyCode] = true;
+        }
     }
-}
 
 ///////////////////////
-/* KEY UP CALLBACK */
+    /* KEY UP CALLBACK */
+
 ///////////////////////
 
-function onKeyUp(e){
+    function onKeyUp(e) {
 
-    // Ignore 1 to 6 keys because they are used for camera switching
-    if (e.keyCode >= 49 && e.keyCode <= 54)
-        return;
-    keys[e.keyCode] = false;
-}
+        // Ignore 1 to 6 keys because they are used for camera switching
+        if (e.keyCode >= 49 && e.keyCode <= 54)
+            return;
+        keys[e.keyCode] = false;
+    }
 
 /////////////////////////
-/* MOVEMENT FUNCTIONS */
+    /* MOVEMENT FUNCTIONS */
+
 /////////////////////////
 
-function rotateHeadPivot(speed, delta){
-    const target = speed > 0 ? Math.PI : 0;
-    if ((speed > 0 && headPivotAngle + speed <= target) || (speed < 0 && headPivotAngle + speed >= target)) {
-        headPivot.rotation.x -= speed * delta;
-        headPivotAngle += speed * delta;
+    function rotateHead(speed, delta) {
+        const target = speed > 0 ? Math.PI : 0;
+        if ((speed > 0 && head3DAngle + speed <= target) || (speed < 0 && head3DAngle + speed >= target)) {
+            head3D.rotation.x -= speed * delta;
+            head3DAngle += speed * delta;
+        }
     }
-}
 
-function moveArms(speed, delta){
-    const target = speed > 0 ? 80 : 0;
-    if ((speed > 0 && armsOffset + speed <= target) || (speed < 0 && armsOffset + speed >= target)) {
-        lArmPivot.position.x += speed * delta;
-        rArmPivot.position.x -= speed * delta;
-        armsOffset += speed * delta;
+    function moveArms(speed, delta) {
+        const target = speed > 0 ? 80 : 0;
+        if ((speed > 0 && armsOffset + speed <= target) || (speed < 0 && armsOffset + speed >= target)) {
+            lArm3D.position.x += speed * delta;
+            rArm3D.position.x -= speed * delta;
+            armsOffset += speed * delta;
+        }
     }
-}
 
-function rotateThighsPivots(speed, delta) {
-    const target = speed > 0 ? Math.PI/2 : 0;
-    if ((speed > 0 && thighsPivotsAngle + speed <= target)  || (speed < 0 && thighsPivotsAngle + speed >= target)) {
-        lThighPivot.rotation.x += speed * delta;
-        rThighPivot.rotation.x += speed * delta;
-        thighsPivotsAngle += speed * delta;
+    function rotateThighs(speed, delta) {
+        const target = speed > 0 ? Math.PI / 2 : 0;
+        if ((speed > 0 && thighs3DAngle + speed <= target) || (speed < 0 && thighs3DAngle + speed >= target)) {
+            thighs3D.rotation.x += speed * delta;
+            thighs3DAngle += speed * delta;
+        }
     }
-}
 
-function rotateBootsPivots(speed, delta){
-    const target = speed > 0 ? Math.PI/2 : 0;
-    if ((speed > 0 && bootsPivotsAngle + speed <= target) || (speed < 0 && bootsPivotsAngle + speed >= target)) {
-        lBootPivot.rotation.x += speed * delta;
-        rBootPivot.rotation.x += speed * delta;
-        bootsPivotsAngle += speed * delta;
+    function rotateBoots(speed, delta) {
+        const target = speed > 0 ? Math.PI / 2 : 0;
+        if ((speed > 0 && boots3DAngle + speed <= target) || (speed < 0 && boots3DAngle + speed >= target)) {
+            boots3D.rotation.x += speed * delta;
+            boots3DAngle += speed * delta;
+        }
     }
-}
 
-function moveTrailer(axis, speed, delta){
-    if (speed !== 0 && axis === "x") {
-        trailer.position.x -= speed * delta;
-    } else {
-        trailer.position.z += speed * delta;
+    function moveTrailer(axis, speed, delta) {
+        if (speed !== 0 && axis === "x") {
+            trailer3D.position.x -= speed * delta;
+        } else {
+            trailer3D.position.z += speed * delta;
+        }
     }
-}
 
+    function rotateCoupler(speed, delta) {
+        const target = speed > 0 ? Math.PI : 0;
+        if ((speed > 0 && coupler3DAngle + speed <= target) || (speed < 0 && coupler3DAngle + speed >= target)) {
+            coupler3D1.rotation.y -= speed * delta;
+            coupler3D2.rotation.y += speed * delta;
+            coupler3DAngle += speed * delta;
+        }
+    }
 /*
 
-function moveTrailer(axis, speed){
+function moveTrailer(axis, speed) {
     trailerMoving = true;
     const target = speed > 0 ? 80 : 0;
     if ((speed > 0 && trailerOffset + speed <= target) || (speed < 0 && trailerOffset + speed >= target)) {
@@ -483,18 +499,18 @@ function moveTrailer(axis, speed){
     }
 }
 
-function rotateLatchPivot(speed) {
-    latchPivotRotating = true;
+function rotateLatch(speed) {
+    latch3DRotating = true;S
     const axis = new THREE.Vector3(0, 1, 0);
     const target = speed > 0 ? Math.PI : 0;
-    if ((speed > 0 && latchPivotAngle + speed <= target) || (speed < 0 && latchPivotAngle + speed >= target)) {
-        latchPivot.rotateOnAxis(axis, speed);
-        latchPivotAngle += speed;
-        requestAnimationFrame(() => rotateLatchPivot(speed));
+    if ((speed > 0 && latch3DAngle + speed <= target) || (speed < 0 && latch3DAngle + speed >= target)) {
+        latch3D.rotateOnAxis(axis, speed);
+        latch3DAngle += speed;
+        requestAnimationFrame(() => rotateLatch3D(speed));
     } else {
-        latchPivot.rotateOnAxis(axis, target - latchPivotAngle);
-        latchPivotAngle = target;
-        latchPivotRotating = false;
+        latch3D.rotateOnAxis(axis, target - latch3DAngle);
+        latch3DAngle = target;
+        latch3DRotating = false;
     }
 }
 
