@@ -34,6 +34,9 @@ let thighs3DAngle = 0;
 let boots3DAngle = 0;
 let coupler3DAngle = 0;
 
+// Bounding Boxes
+let robotruckAABB, trailerAABB;
+
 /////////////////////
 /* CREATE SCENE(S) */
 /////////////////////
@@ -135,6 +138,7 @@ function createRoboTruck() {
     // Arms 3Ds (parent: torso 3D; children: upper arms, exhaust pipes, lower arms)
     lArm3D = createObject3D(torso3D, -torsoW/2, 0, -torsoD/2);
     rArm3D = createObject3D(torso3D, torsoW/2, 0, -torsoD/2);
+    //createCube(1, 1, 1, 0x808080, null, lArm3D, 0, 0, 0); ELIMINAR
     const uArmW = 80, uArmH = 160, uArmD = 80;
     createCube(uArmW, uArmH, uArmD, 0x035f53, null, lArm3D, -uArmW/2, 0, -uArmD/2);
     createCube(uArmW, uArmH, uArmD, 0x035f53, null, rArm3D, uArmW/2, 0, -uArmD/2);
@@ -212,10 +216,57 @@ function createTrailer() {
 }
 
 //////////////////////
-/* CHECK COLLISIONS */
+/* COLLISION FUNCTIONS */
 //////////////////////
-function checkCollisions() {
 
+function checkCollisions() {
+    return (
+        robotruckAABB[0][0] <= trailerAABB[1][0] && //xmin_robo <= xmax_trailer
+        robotruckAABB[1][0] >= trailerAABB[0][0] && //xmax_robo >= xmax_trailer
+        robotruckAABB[0][1] <= trailerAABB[1][1] && //ymin_robo <= ymax_trailer
+        robotruckAABB[1][1] >= trailerAABB[0][1] && //ymax_robo >= ymin_trailer
+        robotruckAABB[0][2] <= trailerAABB[1][2] && //zmin_robo <= zmax_trailer
+        robotruckAABB[1][2] >= trailerAABB[0][2] //zmax_robo >= zmin_trailer
+      );
+}
+
+function createBoundingBox(xmin, ymin, zmin, xmax, ymax, zmax) {
+    let min_point = [xmin, ymin, zmin];
+    let max_point = [xmax, ymax, zmax];
+    return [min_point, max_point];
+}
+
+function createRoboTruckAABB() {
+    // constants needed
+    const pipeH = 120, wheelR = 40, thighH = 120, legH = 320, bootH = 40, 
+        headH = 80, antennaH = 40, torsoD = 160;
+
+    robotruckAABB = createBoundingBox(lArm3D.position.x - pipeH,
+                                      thighs3D.position.y - wheelR/2,
+                                      thighs3D.position.z - thighH - legH - bootH,
+                                      rArm3D.position.x + pipeH, 
+                                      head3D.position.y + headH + antennaH/2,
+                                      head3D.position.z + torsoD);
+}
+
+function createTrailerAABB() {
+    // constants needed for trailer AABB
+    const bodyW = 240, bodyH = 280, bodyD = 1160, wheelR = 40, 
+        plateH = 40, chassisH = 80;  
+    //update trailer bounding box
+    trailerAABB = createBoundingBox(trailer3D.position.x - bodyW/2 - wheelR,
+                                    trailer3D.position.y - bodyH/2 - plateH - chassisH - wheelR/2,
+                                    trailer3D.position.z - bodyD/2,
+                                    trailer3D.position.x + bodyW/2 + wheelR,
+                                    trailer3D.position.y + bodyH/2,
+                                    trailer3D.position.z + bodyD/2); 
+}
+
+function isTruck() {
+    const margin_pi = 0.02, margin_half_pi = 0.01; 
+    return head3DAngle >= Math.PI - margin_pi && 
+           thighs3DAngle >= Math.PI/2 - margin_half_pi && 
+           boots3DAngle >= Math.PI/2 - margin_half_pi; 
 }
 
 ///////////////////////
@@ -298,6 +349,15 @@ function update(delta) {
             }
         }
     }
+    // if robotruck is in full truck mode
+    if (isTruck()) {
+        createTrailerAABB();
+        // if a collision is detected
+        if (checkCollisions()) {
+            //activate animation
+            console.log("COLLISION"); //TODO delete later
+        }
+    }
 }
 
 /////////////
@@ -332,6 +392,8 @@ function update(delta) {
         camera = cameras.front;
 
         previousTime = performance.now();
+
+        createRoboTruckAABB();
 
         // TODO: remove this controls line later
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -515,3 +577,5 @@ function rotateLatch(speed) {
 }
 
 */
+
+
