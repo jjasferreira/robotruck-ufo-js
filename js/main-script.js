@@ -17,13 +17,13 @@ const cameras = {front: null, side: null, top: null, iso: null, persp: null};
 let keys = {};
 
 // Materials
-let materials = []; // TODO: do a dictionary
+let materials = [];
 
-// RoboTruck components
+// RoboTruck's Object3Ds
 let torso3D, head3D, lArm3D, rArm3D, abdomen3D, waist3D, thighs3D, legs3D, boots3D;
 
-// Trailer components
-let trailer3D, plate3D, chassis3D, couplerBody, coupler3D1, coupler3D2, latch3D;
+// Trailer's Object3Ds
+let trailer3D, lLatch3D, rLatch3D, plate3D, chassis3D;
 
 // Movements and Rotations
 let movementSpeed = 0.5;
@@ -32,7 +32,7 @@ let rotationSpeed = 0.008;
 let head3DAngle = 0;
 let thighs3DAngle = 0;
 let boots3DAngle = 0;
-let coupler3DAngle = 0;
+let latches3DAngle = 0;
 
 // Bounding Boxes
 let robotruckAABB, trailerAABB;
@@ -50,7 +50,6 @@ function createScene() {
     createTrailer();
     // TODO: remove the axes helper later
     const axesHelper = new THREE.AxesHelper(300);
-    axesHelper.renderOrder = 1; // Set a higher render order for the axes helper
     scene.add(axesHelper);
 }
 
@@ -90,6 +89,11 @@ function createObject3D(parent, x = 0, y = 0, z = 0) {
     obj3D.position.set(x, y, z);
     parent.add(obj3D);
     return obj3D;
+}
+
+function createMaterial(name, color) {
+    // TODO: change how materials are created and stored
+    materials[name] = new THREE.MeshBasicMaterial({color: color});
 }
 
 function createCube(w, h, d, color, rotAxis, parent, x = 0, y = 0, z = 0) {
@@ -138,7 +142,6 @@ function createRoboTruck() {
     // Arms 3Ds (parent: torso 3D; children: upper arms, exhaust pipes, lower arms)
     lArm3D = createObject3D(torso3D, -torsoW/2, 0, -torsoD/2);
     rArm3D = createObject3D(torso3D, torsoW/2, 0, -torsoD/2);
-    //createCube(1, 1, 1, 0x808080, null, lArm3D, 0, 0, 0); ELIMINAR
     const uArmW = 80, uArmH = 160, uArmD = 80;
     createCube(uArmW, uArmH, uArmD, 0x035f53, null, lArm3D, -uArmW/2, 0, -uArmD/2);
     createCube(uArmW, uArmH, uArmD, 0x035f53, null, rArm3D, uArmW/2, 0, -uArmD/2);
@@ -186,10 +189,18 @@ function createRoboTruck() {
 
 function createTrailer() {
 
-    // Trailer 3D (parent: scene; children: body, plate 3D)
+    // Trailer 3D (parent: scene; children: body, coupler, latches 3Ds, plate 3D)
     trailer3D = createObject3D(scene, 300, 40, -1080);
     const bodyW = 240, bodyH = 280, bodyD = 1160;
     createCube(bodyW, bodyH, bodyD, 0xff606b, null, trailer3D);
+    const couplerW = 80, couplerH = 40, couplerD = 120;
+    createCube(couplerW, couplerH, couplerD, 0x808080, null, trailer3D, 0, -couplerH/2-bodyH/2, -5*couplerD/6+bodyD/2);
+    const latchW = 40, latchH = 40, latchD = 40;
+    // Latches 3Ds (parent: trailer 3D; children: latches)
+    lLatch3D = createObject3D(trailer3D, -latchW, -latchH/2-bodyH/2, -latchD+bodyD/2);
+    rLatch3D = createObject3D(trailer3D, latchW, -latchH/2-bodyH/2, -latchD+bodyD/2);
+    createCube(latchW, latchH, latchD, 0x101010, null, lLatch3D, latchW/2, 0, latchD/2);
+    createCube(latchW, latchH, latchD, 0x101010, null, rLatch3D, -latchW/2, 0, latchD/2);
     // Plate 3D (parent: trailer 3D; children: plate, chassis 3D)
     plate3D = createObject3D(trailer3D, 0, -bodyH/2, -bodyD/2);
     const plateW = 240, plateH = 40, plateD = 760;
@@ -204,20 +215,11 @@ function createTrailer() {
     createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, chassis3D, wheelH/2+chassisW/2, -3*chassisH/4, 3*chassisD/10);
     createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, chassis3D, -wheelH/2-chassisW/2, -3*chassisH/4, 7*chassisD/10);
     createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, chassis3D, wheelH/2+chassisW/2, -3*chassisH/4, 7*chassisD/10);
-    // TODO: fix this part later
-    const couplerW = 80, couplerH = 40, couplerD = 120;
-    const couplerLatchW = 40, couplerLatchH = 40, couplerLatchD = 40;
-    couplerBody = createCube(couplerW, couplerH, couplerD, 0x808080, null, trailer3D, 0, -bodyH/2 - couplerH/2, bodyD/2 - couplerD/2 - couplerLatchD);
-    coupler3D1 = createObject3D(trailer3D, -couplerW/2, -bodyH/2 - couplerH/2 , bodyD/2 - couplerLatchD);
-    coupler3D2 = createObject3D(trailer3D, couplerW/2, -bodyH/2 - couplerH/2 , bodyD/2 - couplerLatchD);
-    let couplerLatch1 = createCube(couplerLatchW, couplerLatchH, couplerLatchD, 0x101010, null, coupler3D1, couplerLatchW/2, 0, couplerLatchD/2);
-    let couplerLatch2 = createCube(couplerLatchW, couplerLatchH, couplerLatchD, 0x101010, null, coupler3D2, -couplerLatchW/2, 0, couplerLatchD/2);
-
 }
 
-//////////////////////
+/////////////////////////
 /* COLLISION FUNCTIONS */
-//////////////////////
+/////////////////////////
 
 function checkCollisions() {
     return (
@@ -272,6 +274,7 @@ function isTruck() {
 ///////////////////////
 /* HANDLE COLLISIONS */
 ///////////////////////
+
 function handleCollisions() {
 
 }
@@ -279,53 +282,46 @@ function handleCollisions() {
 ////////////
 /* UPDATE */
 ////////////
+
 function update(delta) {
     for (let k in keys) {
-        if (keys[k] == true) {
+        if (keys[k] === true) {
             switch (k) {
-                // Arms Movement Controls (keys E, D)
-                case "69": // E
-                case "101": // e
-                    if (armsOffset < 80)
-                        requestAnimationFrame(() => moveArms(movementSpeed, delta));
-                    break;
-                case "68": // D
-                case "100": // d
-                    if (armsOffset > 0)
-                        requestAnimationFrame(() => moveArms(-movementSpeed, delta));
-                    break;
                 // Head Rotation Controls (keys R, F)
                 case "82": // R
                 case "114": // r
-                    if (head3DAngle < Math.PI)
-                        requestAnimationFrame(() => rotateHead(rotationSpeed * 2, delta));
+                    rotateHead(rotationSpeed * 2, delta);
                     break;
                 case "70": // F
                 case "102": // f
-                    if (head3DAngle > 0)
-                        requestAnimationFrame(() => rotateHead(-rotationSpeed * 2, delta));
+                    rotateHead(-rotationSpeed * 2, delta);
+                    break;
+                // Arms Movement Controls (keys E, D)
+                case "69": // E
+                case "101": // e
+                    moveArms(movementSpeed, delta);
+                    break;
+                case "68": // D
+                case "100": // d
+                    moveArms(-movementSpeed, delta);
                     break;
                 // Thighs Rotation Controls (keys W, S)
                 case "87": // W
                 case "119": // w
-                    if (thighs3DAngle < Math.PI / 2)
-                        requestAnimationFrame(() => rotateThighs(rotationSpeed, delta));
+                    rotateThighs(rotationSpeed, delta);
                     break;
                 case "83": // S
                 case "115": // s
-                    if (thighs3DAngle > 0)
-                        requestAnimationFrame(() => rotateThighs(-rotationSpeed, delta));
+                    rotateThighs(-rotationSpeed, delta);
                     break;
                 // Boots Rotation Controls (keys Q, A)
                 case "81": // Q
                 case "113": // q
-                    if (boots3DAngle < Math.PI / 2)
-                        requestAnimationFrame(() => rotateBoots(rotationSpeed, delta));
+                    rotateBoots(rotationSpeed, delta);
                     break;
                 case "65": // A
                 case "97": // a
-                    if (boots3DAngle > 0)
-                        requestAnimationFrame(() => rotateBoots(-rotationSpeed, delta));
+                    rotateBoots(-rotationSpeed, delta);
                     break;
                 // Trailer Movement Controls (keys left, right, down, up)
                 case "37": // left
@@ -340,12 +336,14 @@ function update(delta) {
                 case "38": // up
                     moveTrailer("z", -movementSpeed * 20, delta);
                     break;
+                // Latches Rotation Controls (keys H, Y)
                 case "72": // H
                 case "104": // h
-                    rotateCoupler(rotationSpeed, delta);
+                    rotateLatches(rotationSpeed, delta);
+                    break;
                 case "89": // Y
                 case "121": // y
-                    rotateCoupler(-rotationSpeed, delta);
+                    rotateLatches(-rotationSpeed, delta);
             }
         }
     }
@@ -361,221 +359,181 @@ function update(delta) {
 }
 
 /////////////
-    /* DISPLAY */
-
+/* DISPLAY */
 /////////////
-    function render() {
 
-        renderer.render(scene, camera);
-    }
+function render() {
+
+    renderer.render(scene, camera);
+}
 
 ////////////////////////////////
-    /* INITIALIZE ANIMATION CYCLE */
+/* INITIALIZE ANIMATION CYCLE */
 ////////////////////////////////
-// noinspection JSUnresolvedReference
-    function init() {
 
-        renderer = new THREE.WebGLRenderer({
-            antialias: true
-        });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+function init() {
 
-        createScene();
+    renderer = new THREE.WebGLRenderer({
+        antialias: true
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-        // Create all cameras and set default camera
-        cameras.front = createOrthographicCamera(0, 0, 500, 0, 5000);
-        cameras.side = createOrthographicCamera(500, 0, 0, 0, 5000);
-        cameras.top = createOrthographicCamera(0, 500, 0, 0, 5000);
-        cameras.iso = createOrthographicCamera(500, 500, 500, 0, 5000);
-        cameras.persp = createPerspectiveCamera(500, 500, 750, 0, 5000, 80);
-        camera = cameras.front;
+    createScene();
 
-        previousTime = performance.now();
+    // Create all cameras and set default camera
+    cameras.front = createOrthographicCamera(0, 0, 500, 0, 5000);
+    cameras.side = createOrthographicCamera(500, 0, 0, 0, 5000);
+    cameras.top = createOrthographicCamera(0, 500, 0, 0, 5000);
+    cameras.iso = createOrthographicCamera(500, 500, 500, 0, 5000);
+    cameras.persp = createPerspectiveCamera(500, 500, 750, 0, 5000, 80);
+    camera = cameras.front;
 
-        createRoboTruckAABB();
+    previousTime = performance.now();
 
-        // TODO: remove this controls line later
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        // disable arrow keys for camera controls
-        controls.keys = {
-            LEFT: null, //left arrow
-            UP: null, // up arrow
-            RIGHT: null, // right arrow
-            BOTTOM: null // down arrow
-        }
+    createRoboTruckAABB();
 
-        render();
-
-        window.addEventListener('keydown', onKeyDown);
-        window.addEventListener('resize', onResize);
-        window.addEventListener('keyup', onKeyUp);
+    // TODO: remove this controls line later
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    // disable arrow keys for camera controls
+    controls.keys = {
+        LEFT: null, //left arrow
+        UP: null, // up arrow
+        RIGHT: null, // right arrow
+        BOTTOM: null // down arrow
     }
 
+    render();
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('resize', onResize);
+    window.addEventListener('keyup', onKeyUp);
+}
 
 /////////////////////
-    /* ANIMATION CYCLE */
-
+/* ANIMATION CYCLE */
 /////////////////////
-    function animate() {
 
-        requestAnimationFrame(animate);
-        currentTime = performance.now();
-        let delta = (currentTime - previousTime) / 20;
-        previousTime = currentTime;
-        update(delta);
-        render();
-    }
+function animate() {
 
-////////////////////////////
-    /* RESIZE WINDOW CALLBACK */
+    requestAnimationFrame(animate);
+    currentTime = performance.now();
+    let delta = (currentTime - previousTime) / 20;
+    previousTime = currentTime;
+    update(delta);
+    render();
+}
 
 ////////////////////////////
+/* RESIZE WINDOW CALLBACK */
+////////////////////////////
 
-    function onResize() {
+function onResize() {
 
-        // TODO: how to keep resize information when changing camera?
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        if (window.innerHeight > 0 && window.innerWidth > 0) {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-        }
-    }
-
-///////////////////////
-    /* KEY DOWN CALLBACK */
-
-///////////////////////
-
-    function onKeyDown(e) {
-
-        switch (e.keyCode) {
-            // Camera Controls (keys 1, 2, 3, 4, 5)
-            case 49: // 1
-                camera = cameras.front;
-                let controls = new THREE.OrbitControls(camera, renderer.domElement);
-                break;
-            case 50: // 2
-                camera = cameras.side;
-                break;
-            case 51: // 3
-                camera = cameras.top;
-                break;
-            case 52: // 4
-                camera = cameras.iso;
-                break;
-            case 53: // 5
-                camera = cameras.persp;
-                break;
-            // Visual Representation Controls (key 6)
-            case 54: // 6
-                materials.forEach(function (material) {
-                    material.wireframe = !material.wireframe;
-                });
-                break;
-            default:
-                keys[e.keyCode] = true;
-        }
-    }
-
-///////////////////////
-    /* KEY UP CALLBACK */
-
-///////////////////////
-
-    function onKeyUp(e) {
-
-        // Ignore 1 to 6 keys because they are used for camera switching
-        if (e.keyCode >= 49 && e.keyCode <= 54)
-            return;
-        keys[e.keyCode] = false;
-    }
-
-/////////////////////////
-    /* MOVEMENT FUNCTIONS */
-
-/////////////////////////
-
-    function rotateHead(speed, delta) {
-        const target = speed > 0 ? Math.PI : 0;
-        if ((speed > 0 && head3DAngle + speed <= target) || (speed < 0 && head3DAngle + speed >= target)) {
-            head3D.rotation.x -= speed * delta;
-            head3DAngle += speed * delta;
-        }
-    }
-
-    function moveArms(speed, delta) {
-        const target = speed > 0 ? 80 : 0;
-        if ((speed > 0 && armsOffset + speed <= target) || (speed < 0 && armsOffset + speed >= target)) {
-            lArm3D.position.x += speed * delta;
-            rArm3D.position.x -= speed * delta;
-            armsOffset += speed * delta;
-        }
-    }
-
-    function rotateThighs(speed, delta) {
-        const target = speed > 0 ? Math.PI / 2 : 0;
-        if ((speed > 0 && thighs3DAngle + speed <= target) || (speed < 0 && thighs3DAngle + speed >= target)) {
-            thighs3D.rotation.x += speed * delta;
-            thighs3DAngle += speed * delta;
-        }
-    }
-
-    function rotateBoots(speed, delta) {
-        const target = speed > 0 ? Math.PI / 2 : 0;
-        if ((speed > 0 && boots3DAngle + speed <= target) || (speed < 0 && boots3DAngle + speed >= target)) {
-            boots3D.rotation.x += speed * delta;
-            boots3DAngle += speed * delta;
-        }
-    }
-
-    function moveTrailer(axis, speed, delta) {
-        if (speed !== 0 && axis === "x") {
-            trailer3D.position.x -= speed * delta;
-        } else {
-            trailer3D.position.z += speed * delta;
-        }
-    }
-
-    function rotateCoupler(speed, delta) {
-        const target = speed > 0 ? Math.PI : 0;
-        if ((speed > 0 && coupler3DAngle + speed <= target) || (speed < 0 && coupler3DAngle + speed >= target)) {
-            coupler3D1.rotation.y -= speed * delta;
-            coupler3D2.rotation.y += speed * delta;
-            coupler3DAngle += speed * delta;
-        }
-    }
-/*
-
-function moveTrailer(axis, speed) {
-    trailerMoving = true;
-    const target = speed > 0 ? 80 : 0;
-    if ((speed > 0 && trailerOffset + speed <= target) || (speed < 0 && trailerOffset + speed >= target)) {
-        trailer.position[axis] += speed;
-        trailerOffset += speed;
-        requestAnimationFrame(() => moveTrailer(axis, speed));
-    } else {
-        trailer.position[axis] += target - trailerOffset;
-        trailerOffset = target;
-        trailerMoving = false;
+    // TODO: how to keep resize information when changing camera?
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    if (window.innerHeight > 0 && window.innerWidth > 0) {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
     }
 }
 
-function rotateLatch(speed) {
-    latch3DRotating = true;S
-    const axis = new THREE.Vector3(0, 1, 0);
+///////////////////////
+/* KEY DOWN CALLBACK */
+///////////////////////
+
+function onKeyDown(e) {
+
+    switch (e.keyCode) {
+        // Camera Controls (keys 1, 2, 3, 4, 5)
+        case 49: // 1
+            camera = cameras.front;
+            let controls = new THREE.OrbitControls(camera, renderer.domElement);
+            break;
+        case 50: // 2
+            camera = cameras.side;
+            break;
+        case 51: // 3
+            camera = cameras.top;
+            break;
+        case 52: // 4
+            camera = cameras.iso;
+            break;
+        case 53: // 5
+            camera = cameras.persp;
+            break;
+        // Visual Representation Controls (key 6)
+        case 54: // 6
+            materials.forEach(function (material) {
+                material.wireframe = !material.wireframe;
+            });
+            break;
+        default:
+            keys[e.keyCode] = true;
+    }
+}
+
+/////////////////////
+/* KEY UP CALLBACK */
+/////////////////////
+
+function onKeyUp(e) {
+
+    // Ignore 1 to 6 keys because they are used for camera switching
+    if (e.keyCode >= 49 && e.keyCode <= 54)
+        return;
+    keys[e.keyCode] = false;
+}
+
+/////////////////////////////////////
+/* MOVEMENT AND ROTATION FUNCTIONS */
+/////////////////////////////////////
+
+function rotateHead(speed, delta) {
     const target = speed > 0 ? Math.PI : 0;
-    if ((speed > 0 && latch3DAngle + speed <= target) || (speed < 0 && latch3DAngle + speed >= target)) {
-        latch3D.rotateOnAxis(axis, speed);
-        latch3DAngle += speed;
-        requestAnimationFrame(() => rotateLatch3D(speed));
-    } else {
-        latch3D.rotateOnAxis(axis, target - latch3DAngle);
-        latch3DAngle = target;
-        latch3DRotating = false;
+    if ((speed > 0 && head3DAngle + speed <= target) || (speed < 0 && head3DAngle + speed >= target)) {
+        head3D.rotation.x -= speed * delta;
+        head3DAngle += speed * delta;
     }
 }
 
-*/
+function moveArms(speed, delta) {
+    const target = speed > 0 ? 80 : 0;
+    if ((speed > 0 && armsOffset + speed <= target) || (speed < 0 && armsOffset + speed >= target)) {
+        lArm3D.position.x += speed * delta;
+        rArm3D.position.x -= speed * delta;
+        armsOffset += speed * delta;
+    }
+}
 
+function rotateThighs(speed, delta) {
+    const target = speed > 0 ? Math.PI / 2 : 0;
+    if ((speed > 0 && thighs3DAngle + speed <= target) || (speed < 0 && thighs3DAngle + speed >= target)) {
+        thighs3D.rotation.x += speed * delta;
+        thighs3DAngle += speed * delta;
+    }
+}
 
+function rotateBoots(speed, delta) {
+    const target = speed > 0 ? Math.PI / 2 : 0;
+    if ((speed > 0 && boots3DAngle + speed <= target) || (speed < 0 && boots3DAngle + speed >= target)) {
+        boots3D.rotation.x += speed * delta;
+        boots3DAngle += speed * delta;
+    }
+}
+
+function moveTrailer(axis, speed, delta) {
+    if (speed !== 0 && axis === "x")
+        trailer3D.position.x -= speed * delta;
+    else
+        trailer3D.position.z += speed * delta;
+}
+
+function rotateLatches(speed, delta) {
+    const target = speed > 0 ? Math.PI/2 : 0;
+    if ((speed > 0 && latches3DAngle + speed <= target) || (speed < 0 && latches3DAngle + speed >= target)) {
+        lLatch3D.rotation.y -= speed * delta;
+        rLatch3D.rotation.y += speed * delta;
+        latches3DAngle += speed * delta;
+    }
+}
