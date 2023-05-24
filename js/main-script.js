@@ -46,8 +46,11 @@ function createScene() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0xF0EAD6);
     scene.fog = new THREE.FogExp2( 0xa9a9fc, 0.00025);
+    // create robotruck, trailer and respective bounding boxes
     createRoboTruck();
+    createRoboAABB();
     createTrailer();
+    createTrailerAABB(trailer3D.position);
     // TODO: remove the axes helper later
     const axesHelper = new THREE.AxesHelper(300);
     scene.add(axesHelper);
@@ -217,14 +220,15 @@ function createTrailer() {
     createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, chassis3D, wheelH/2+chassisW/2, -3*chassisH/4, 7*chassisD/10);
 }
 
-/////////////////////////
-/* COLLISION FUNCTIONS */
-/////////////////////////
+/////////////////////////////////////////
+/* COLLISION AND BOUNDARIES FUNCTIONS */
+/////////////////////////////////////////
 
 function checkCollisions() {
+    // check if trailer collides with robotruck
     return (
         robotruckAABB[0][0] <= trailerAABB[1][0] && //xmin_robo <= xmax_trailer
-        robotruckAABB[1][0] >= trailerAABB[0][0] && //xmax_robo >= xmax_trailer
+        robotruckAABB[1][0] >= trailerAABB[0][0] && //xmax_robo >= xmin_trailer
         robotruckAABB[0][1] <= trailerAABB[1][1] && //ymin_robo <= ymax_trailer
         robotruckAABB[1][1] >= trailerAABB[0][1] && //ymax_robo >= ymin_trailer
         robotruckAABB[0][2] <= trailerAABB[1][2] && //zmin_robo <= zmax_trailer
@@ -232,13 +236,39 @@ function checkCollisions() {
       );
 }
 
+function checkBoundaries(position) {
+    // constants needed
+    let maxBoundary = 2000, minBoundary = -2000;
+    // check if trailer excedes scene boundaries
+    return (
+        position.x > maxBoundary,
+        position.x < minBoundary,
+        position.z > maxBoundary,
+        position.z < minBoundary
+    );
+} 
+
 function createBoundingBox(xmin, ymin, zmin, xmax, ymax, zmax) {
     let min_point = [xmin, ymin, zmin];
     let max_point = [xmax, ymax, zmax];
     return [min_point, max_point];
 }
 
-function createRoboTruckAABB() {
+function createRoboAABB() {
+    // creates bounding box for robotruck in robot mode
+    //constants needed
+    const pipeH = 120, thighH = 120, legH = 320, bootH = 40, 
+        headH = 80, antennaH = 40, torsoD = 160, uArmD = 80;
+    robotruckAABB = createBoundingBox(lArm3D.position.x - pipeH,
+                                      thighs3D.position.y - thighH - legH - bootH,
+                                      head3D.position.z - uArmD,
+                                      rArm3D.position.x + pipeH,
+                                      head3D.position.y + headH + antennaH/2,
+                                      head3D.position.z + torsoD);
+}                                   
+
+function createTruckAABB() {
+    // creates bounding box for robotruck in truck mode
     // constants needed
     const pipeH = 120, wheelR = 40, thighH = 120, legH = 320, bootH = 40, 
         headH = 80, antennaH = 40, torsoD = 160;
@@ -256,12 +286,12 @@ function createTrailerAABB(position) {
     const bodyW = 240, bodyH = 280, bodyD = 1160, wheelR = 40, 
         plateH = 40, chassisH = 80;  
     //update trailer bounding box
-    trailerAABB = createBoundingBox(trailer3D.position.x - bodyW/2 - wheelR,
-                                    trailer3D.position.y - bodyH/2 - plateH - chassisH - wheelR/2,
-                                    trailer3D.position.z - bodyD/2,
-                                    trailer3D.position.x + bodyW/2 + wheelR,
-                                    trailer3D.position.y + bodyH/2,
-                                    trailer3D.position.z + bodyD/2); 
+    trailerAABB = createBoundingBox(position.x - bodyW/2 - wheelR,
+                                    position.y - bodyH/2 - plateH - chassisH - wheelR/2,
+                                    position.z - bodyD/2,
+                                    position.x + bodyW/2 + wheelR,
+                                    position.y + bodyH/2,
+                                    position.z + bodyD/2); 
 }
 
 function isTruck() {
@@ -269,6 +299,13 @@ function isTruck() {
     return head3DAngle >= Math.PI - margin_pi && 
            thighs3DAngle >= Math.PI/2 - margin_half_pi && 
            boots3DAngle >= Math.PI/2 - margin_half_pi; 
+}
+
+function updateRobotruckAABB() {
+    if (isTruck())
+        createTruckAABB();
+    else
+        createRoboAABB();
 }
 
 ///////////////////////
@@ -284,6 +321,7 @@ function handleCollisions() {
 ////////////
 
 function update(delta) {
+    let tentPosition;
     for (let k in keys) {
         if (keys[k] === true) {
             switch (k) {
@@ -325,16 +363,20 @@ function update(delta) {
                     break;
                 // Trailer Movement Controls (keys left, right, down, up)
                 case "37": // left
-                    moveTrailer("x", movementSpeed * 20, delta);
+                    tentPosition = checkMoveTrailer("x", movementSpeed * 20, delta);
+                    executeMoveTrailer(tentPosition);
                     break;
                 case "39": // right
-                    moveTrailer("x", -movementSpeed * 20, delta);
+                    tentPosition = checkMoveTrailer("x", -movementSpeed * 20, delta);
+                    executeMoveTrailer(tentPosition);
                     break;
                 case "40": // down
-                    moveTrailer("z", movementSpeed * 20, delta);
+                    tentPosition = checkMoveTrailer("z", movementSpeed * 20, delta);
+                    executeMoveTrailer(tentPosition);
                     break;
                 case "38": // up
-                    moveTrailer("z", -movementSpeed * 20, delta);
+                    tentPosition = checkMoveTrailer("z", -movementSpeed * 20, delta);
+                    executeMoveTrailer(tentPosition);
                     break;
                 // Latches Rotation Controls (keys H, Y)
                 case "72": // H
@@ -347,14 +389,11 @@ function update(delta) {
             }
         }
     }
-    // if robotruck is in full truck mode
-    if (isTruck()) {
-        createTrailerAABB();
-        // if a collision is detected
-        if (checkCollisions()) {
-            //activate animation
-            console.log("COLLISION"); //TODO delete later
-        }
+    // check if robotruck is in robo or truck mode to update AABB
+    updateRobotruckAABB();
+    // check collision and if so initiate animation
+    if (checkCollisions() && isTruck()) {
+        handleCollisions();
     }
 }
 
@@ -390,8 +429,6 @@ function init() {
     camera = cameras.front;
 
     previousTime = performance.now();
-
-    createRoboTruckAABB();
 
     // TODO: remove this controls line later
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -522,13 +559,21 @@ function rotateBoots(speed, delta) {
     }
 }
 
-function moveTrailer(axis, speed, delta) {
-    let tentativePosition = trailer3D.position;
+function checkMoveTrailer(axis, speed, delta) {
+    let tentativePosition = Object.assign({}, trailer3D.position);
     if (speed !== 0 && axis === "x")
         tentativePosition.x -= speed * delta;
     else
         tentativePosition.z += speed * delta;
     return tentativePosition;
+}
+
+function executeMoveTrailer(position) {
+    createTrailerAABB(position);
+    // if there are no collisions move trailer
+    if(!checkCollisions() && !checkBoundaries(position)) {
+        trailer3D.position.set(position.x, position.y, position.z);
+    }
 }
 
 function rotateLatches(speed, delta) {
