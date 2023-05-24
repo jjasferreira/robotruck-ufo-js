@@ -251,7 +251,7 @@ function createRoboTruckAABB() {
                                       head3D.position.z + torsoD);
 }
 
-function createTrailerAABB() {
+function createTrailerAABB(position) {
     // constants needed for trailer AABB
     const bodyW = 240, bodyH = 280, bodyD = 1160, wheelR = 40, 
         plateH = 40, chassisH = 80;  
@@ -523,10 +523,12 @@ function rotateBoots(speed, delta) {
 }
 
 function moveTrailer(axis, speed, delta) {
+    let tentativePosition = trailer3D.position;
     if (speed !== 0 && axis === "x")
-        trailer3D.position.x -= speed * delta;
+        tentativePosition.x -= speed * delta;
     else
-        trailer3D.position.z += speed * delta;
+        tentativePosition.z += speed * delta;
+    return tentativePosition;
 }
 
 function rotateLatches(speed, delta) {
