@@ -257,12 +257,12 @@ function createBoundingBox(xmin, ymin, zmin, xmax, ymax, zmax) {
 function createRoboAABB() {
     // creates bounding box for robotruck in robot mode
     //constants needed
-    const pipeH = 120, thighH = 120, legH = 320, bootH = 40, 
+    const pipeR = 10, thighH = 120, legH = 320, bootH = 40, uArmW = 80, 
         headH = 80, antennaH = 40, torsoD = 160, uArmD = 80;
-    robotruckAABB = createBoundingBox(lArm3D.position.x - pipeH,
+    robotruckAABB = createBoundingBox(lArm3D.position.x - uArmW - pipeR,
                                       thighs3D.position.y - thighH - legH - bootH,
                                       head3D.position.z - uArmD,
-                                      rArm3D.position.x + pipeH,
+                                      rArm3D.position.x + uArmW + pipeR,
                                       head3D.position.y + headH + antennaH/2,
                                       head3D.position.z + torsoD);
 }                                   
@@ -270,13 +270,13 @@ function createRoboAABB() {
 function createTruckAABB() {
     // creates bounding box for robotruck in truck mode
     // constants needed
-    const pipeH = 120, wheelR = 40, thighH = 120, legH = 320, bootH = 40, 
+    const wheelR = 40, thighH = 120, legH = 320, bootH = 40, uArmW = 80, 
         headH = 80, antennaH = 40, torsoD = 160;
 
-    robotruckAABB = createBoundingBox(lArm3D.position.x - pipeH,
+    robotruckAABB = createBoundingBox(lArm3D.position.x - uArmW - wheelR,
                                       thighs3D.position.y - wheelR/2,
                                       thighs3D.position.z - thighH - legH - bootH,
-                                      rArm3D.position.x + pipeH, 
+                                      rArm3D.position.x + uArmW + wheelR, 
                                       head3D.position.y + headH + antennaH/2,
                                       head3D.position.z + torsoD);
 }
