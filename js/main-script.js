@@ -28,7 +28,7 @@ let trailer3D, lLatch3D, rLatch3D, plate3D, chassis3D;
 // Movements and Rotations
 let movementSpeed = 0.5;
 let armsOffset = 0;
-let rotationSpeed = 0.008;
+let rotationSpeed = 0.008; // TODO when rotating we need to check the minimum between the intended rotation and what's left. If rotation speed is not a divisor of full rotation angle, we get stuck before the end
 let head3DAngle = 0;
 let thighs3DAngle = 0;
 let boots3DAngle = 0;
@@ -36,6 +36,9 @@ let latches3DAngle = 0;
 
 // Bounding Boxes
 let robotruckAABB, trailerAABB;
+
+// Animation phases
+let coupling = false, inCouplingPosition = false;
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -313,7 +316,10 @@ function updateRobotruckAABB() {
 ///////////////////////
 
 function handleCollisions() {
-
+    // if is in truck mode, begin coupling animation
+    if (isTruck()) {
+        coupling = true;
+    }
 }
 
 ////////////
@@ -322,78 +328,115 @@ function handleCollisions() {
 
 function update(delta) {
     let tentPosition;
-    for (let k in keys) {
-        if (keys[k] === true) {
-            switch (k) {
-                // Head Rotation Controls (keys R, F)
-                case "82": // R
-                case "114": // r
-                    rotateHead(rotationSpeed * 2, delta);
-                    break;
-                case "70": // F
-                case "102": // f
-                    rotateHead(-rotationSpeed * 2, delta);
-                    break;
-                // Arms Movement Controls (keys E, D)
-                case "69": // E
-                case "101": // e
-                    moveArms(movementSpeed, delta);
-                    break;
-                case "68": // D
-                case "100": // d
-                    moveArms(-movementSpeed, delta);
-                    break;
-                // Thighs Rotation Controls (keys W, S)
-                case "87": // W
-                case "119": // w
-                    rotateThighs(rotationSpeed, delta);
-                    break;
-                case "83": // S
-                case "115": // s
-                    rotateThighs(-rotationSpeed, delta);
-                    break;
-                // Boots Rotation Controls (keys Q, A)
-                case "81": // Q
-                case "113": // q
-                    rotateBoots(rotationSpeed, delta);
-                    break;
-                case "65": // A
-                case "97": // a
-                    rotateBoots(-rotationSpeed, delta);
-                    break;
-                // Trailer Movement Controls (keys left, right, down, up)
-                case "37": // left
-                    tentPosition = checkMoveTrailer("x", movementSpeed * 20, delta);
-                    executeMoveTrailer(tentPosition);
-                    break;
-                case "39": // right
-                    tentPosition = checkMoveTrailer("x", -movementSpeed * 20, delta);
-                    executeMoveTrailer(tentPosition);
-                    break;
-                case "40": // down
-                    tentPosition = checkMoveTrailer("z", movementSpeed * 20, delta);
-                    executeMoveTrailer(tentPosition);
-                    break;
-                case "38": // up
-                    tentPosition = checkMoveTrailer("z", -movementSpeed * 20, delta);
-                    executeMoveTrailer(tentPosition);
-                    break;
-                // Latches Rotation Controls (keys H, Y)
-                case "72": // H
-                case "104": // h
-                    rotateLatches(rotationSpeed, delta);
-                    break;
-                case "89": // Y
-                case "121": // y
-                    rotateLatches(-rotationSpeed, delta);
+    if (!coupling) {
+        for (let k in keys) {
+            if (keys[k] === true) {
+                switch (k) {
+                    // Head Rotation Controls (keys R, F)
+                    case "82": // R
+                    case "114": // r
+                        rotateHead(rotationSpeed * 2, delta);
+                        break;
+                    case "70": // F
+                    case "102": // f
+                        rotateHead(-rotationSpeed * 2, delta);
+                        break;
+                    // Arms Movement Controls (keys E, D)
+                    case "69": // E
+                    case "101": // e
+                        moveArms(movementSpeed, delta);
+                        break;
+                    case "68": // D
+                    case "100": // d
+                        moveArms(-movementSpeed, delta);
+                        break;
+                    // Thighs Rotation Controls (keys W, S)
+                    case "87": // W
+                    case "119": // w
+                        rotateThighs(rotationSpeed, delta);
+                        break;
+                    case "83": // S
+                    case "115": // s
+                        rotateThighs(-rotationSpeed, delta);
+                        break;
+                    // Boots Rotation Controls (keys Q, A)
+                    case "81": // Q
+                    case "113": // q
+                        rotateBoots(rotationSpeed, delta);
+                        break;
+                    case "65": // A
+                    case "97": // a
+                        rotateBoots(-rotationSpeed, delta);
+                        break;
+                    // Trailer Movement Controls (keys left, right, down, up)
+                    case "37": // left
+                        tentPosition = checkMoveTrailer("x", movementSpeed * 20, delta);
+                        executeMoveTrailer(tentPosition);
+                        break;
+                    case "39": // right
+                        tentPosition = checkMoveTrailer("x", -movementSpeed * 20, delta);
+                        executeMoveTrailer(tentPosition);
+                        break;
+                    case "40": // down
+                        tentPosition = checkMoveTrailer("z", movementSpeed * 20, delta);
+                        executeMoveTrailer(tentPosition);
+                        break;
+                    case "38": // up
+                        tentPosition = checkMoveTrailer("z", -movementSpeed * 20, delta);
+                        executeMoveTrailer(tentPosition);
+                        break;
+                    // Latches Rotation Controls (keys H, Y)
+                    case "72": // H
+                    case "104": // h
+                        rotateLatches(rotationSpeed, delta);
+                        break;
+                    case "89": // Y
+                    case "121": // y
+                        rotateLatches(-rotationSpeed, delta);
+                } 
             }
+        }
+    } else {
+        if (!inCouplingPosition) {
+            //console.log("positions", trailer3D.position.z, trailer3D.position.x)
+            moveTrailerToCouplingPosition();
+        } else {
+            console.log("coupling");
+            doCouplingAnimation();
         }
     }
     // check if robotruck is in robo or truck mode to update AABB
     updateRobotruckAABB();
-    // check collision and if so initiate animation
-    if (checkCollisions() && isTruck()) {
-        handleCollisions();
+}
+
+
+function doCouplingAnimation() {
+    //bring the z position to -780
+    let positionZ = trailer3D.position.z;
+    if (positionZ < -780) {
+        let deltaZ = Math.min(20, Math.abs(-780 - trailer3D.position.z));
+        trailer3D.position.z += deltaZ;
+    } else {
+        rotateLatches(rotationSpeed, delta)
+    }
+}
+
+function moveTrailerToCouplingPosition() {
+    // if z position is not 1080, update by 20 or 1080 - z, whichever is smaller
+    let positionZ = trailer3D.position.z;
+    let positionX = trailer3D.position.x;
+    let deltaZ = Math.min(20, Math.abs(-1060 - trailer3D.position.z));
+    let deltaX = Math.min(20, Math.abs(0 - trailer3D.position.x));
+    if (positionZ < -1060)
+        trailer3D.position.z += deltaZ;
+    else if (positionZ > -1060)
+        trailer3D.position.z -= deltaZ;
+    if (positionX < 0)
+        trailer3D.position.x += deltaX;
+    else if (positionX > 0)
+        trailer3D.position.x -= deltaX;
+    else {
+        inCouplingPosition = true;
     }
 }
 
@@ -570,10 +613,12 @@ function checkMoveTrailer(axis, speed, delta) {
 
 function executeMoveTrailer(position) {
     createTrailerAABB(position);
+    // if there is a collision and is in truck mode, set coupling to true
+    if (checkCollisions() && isTruck())
+        coupling = true;
     // if there are no collisions move trailer
-    if(!checkCollisions() && !checkBoundaries(position)) {
+    if (!checkCollisions() && !checkBoundaries(position))
         trailer3D.position.set(position.x, position.y, position.z);
-    }
 }
 
 function rotateLatches(speed, delta) {
@@ -583,4 +628,6 @@ function rotateLatches(speed, delta) {
         rLatch3D.rotation.y += speed * delta;
         latches3DAngle += speed * delta;
     }
+    if (latches3DAngle === target)
+        coupling = false;
 }
