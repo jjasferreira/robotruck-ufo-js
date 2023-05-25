@@ -17,7 +17,14 @@ const cameras = {front: null, side: null, top: null, iso: null, persp: null};
 let keys = {};
 
 // Materials
-let materials = [];
+const colors = {
+    grey: 0x808080, beige: 0xe8beac, white: 0xffffff, red: 0xff0000, darkgreen: 0x035f53, amber: 0xffae42,
+    darkgrey: 0x5a5a5a, lightblue: 0x3492da, darkblue: 0x3630a6, lime: 0xdac134, salmon: 0xff606b, black: 0x222222
+};
+let m = {};
+
+// Rotation axes
+const rAxes = {x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1)};
 
 // RoboTruck's Object3Ds
 let torso3D, head3D, lArm3D, rArm3D, abdomen3D, waist3D, thighs3D, legs3D, boots3D;
@@ -25,10 +32,21 @@ let torso3D, head3D, lArm3D, rArm3D, abdomen3D, waist3D, thighs3D, legs3D, boots
 // Trailer's Object3Ds
 let trailer3D, lLatch3D, rLatch3D, plate3D, chassis3D;
 
+// RoboTruck's and Trailer's dimensions
+const d = {
+    torsoW: 240, torsoH: 160, torsoD: 160, headW: 80, headH: 80, headD: 80, eyeW: 20, eyeH: 40/3, eyeD: 10,
+    antennaW: 40/3, antennaH: 40, antennaD: 40/3, uArmW: 80, uArmH: 160, uArmD: 80, pipeR: 10, pipeH: 120, lArmW: 80,
+    lArmH: 80, lArmD: 240, abdomenW: 80, abdomenH: 80, abdomenD: 160, waistW: 240, waistH: 80, waistD: 120, wheelR: 40,
+    wheelH: 40, thighW: 40, thighH: 120, thighD: 40, legW: 80, legH: 320, legD: 80,
+    socketW: 40, socketH: 40, socketD: 40, bootW: 80, bootH: 40, bootD: 60,
+    bodyW: 240, bodyH: 280, bodyD: 1160, couplerW: 80, couplerH: 40, couplerD: 120, latchW: 40, latchH: 40, latchD: 40,
+    plateW: 240, plateH: 40, plateD: 760, chassisW: 240, chassisH: 80, chassisD: 400
+};
+
 // Movements and Rotations
 let movementSpeed = 0.5;
 let armsOffset = 0;
-let rotationSpeed = 0.008; // TODO when rotating we need to check the minimum between the intended rotation and what's left. If rotation speed is not a divisor of full rotation angle, we get stuck before the end
+let rotationSpeed = 0.008 * 20; // TODO when rotating we need to check the minimum between the intended rotation and what's left. If rotation speed is not a divisor of full rotation angle, we get stuck before the end
 let head3DAngle = 0;
 let thighs3DAngle = 0;
 let boots3DAngle = 0;
@@ -50,6 +68,7 @@ function createScene() {
     scene.background = new THREE.Color(0xF0EAD6);
     scene.fog = new THREE.FogExp2( 0xa9a9fc, 0.00025);
     // create robotruck, trailer and respective bounding boxes
+    createMaterials();
     createRoboTruck();
     createRoboAABB();
     createTrailer();
@@ -97,16 +116,15 @@ function createObject3D(parent, x = 0, y = 0, z = 0) {
     return obj3D;
 }
 
-function createMaterial(name, color) {
-    // TODO: change how materials are created and stored
-    materials[name] = new THREE.MeshBasicMaterial({color: color});
+function createMaterials() {
+
+    for (const [name, color] of Object.entries(colors))
+        m[name] = new THREE.MeshBasicMaterial({ color: color });
 }
 
-function createCube(w, h, d, color, rotAxis, parent, x = 0, y = 0, z = 0) {
+function createCube(w, h, d, material, rotAxis, parent, x = 0, y = 0, z = 0) {
 
     const geometry = new THREE.BoxGeometry(w, h, d);
-    const material = new THREE.MeshBasicMaterial({ color: color });
-    materials.push(material);
     const cube = new THREE.Mesh(geometry, material);
     if (rotAxis !== null)
         cube.rotateOnAxis(rotAxis, Math.PI / 2);
@@ -115,12 +133,10 @@ function createCube(w, h, d, color, rotAxis, parent, x = 0, y = 0, z = 0) {
     return cube;
 }
 
-function createCylinder(rt, rb, h, color, rotAxis, parent, x = 0, y = 0, z = 0) {
+function createCylinder(rt, rb, h, material, rotAxis, parent, x = 0, y = 0, z = 0) {
 
     // TODO: should we do CylinderGeometry(rt, rb, h, 32) to make it look smoother?
     const geometry = new THREE.CylinderGeometry(rt, rb, h);
-    const material = new THREE.MeshBasicMaterial({ color: color });
-    materials.push(material);
     const cylinder = new THREE.Mesh(geometry, material);
     if (rotAxis !== null)
         cylinder.rotateOnAxis(rotAxis, Math.PI / 2);
@@ -132,95 +148,73 @@ function createCylinder(rt, rb, h, color, rotAxis, parent, x = 0, y = 0, z = 0) 
 function createRoboTruck() {
 
     // Torso 3D (parent: scene; children: torso, head 3D, arms 3Ds, abdomen 3D)
-    torso3D = createObject3D(scene, 0, 0, 0);
-    const torsoW = 240, torsoH = 160, torsoD = 160;
-    createCube(torsoW, torsoH, torsoD, 0x808080, null, torso3D);
-    // Head 3D (parent: torso 3D; children: head, eyes, antennas)
-    head3D = createObject3D(torso3D, 0, torsoH/2, -torsoD/2);
-    const headW = 80, headH = 80, headD = 80;
-    createCube(headW, headH, headD, 0xe8Beac, null, head3D, 0, headH/2, headD/2);
-    const eyeW = 20, eyeH = 40/3, eyeD = 10;
-    createCube(eyeW, eyeH, eyeD, 0xffffff, null, head3D, -headW/4, 3*headH/5, headD);
-    createCube(eyeW, eyeH, eyeD, 0xffffff, null, head3D, headW/4, 3*headH/5, headD);
-    const antennaW = 40/3, antennaH = 40, antennaD = 40/3;
-    createCube(antennaW, antennaH, antennaD, 0xff0000, null, head3D, -headW/4, headH, 0);
-    createCube(antennaW, antennaH, antennaD, 0xff0000, null, head3D, headW/4, headH, 0);
+    torso3D = createObject3D(scene, 0, d.torsoH/2+d.abdomenH+d.waistH+d.wheelR/2, 0);
+    createCube(d.torsoW, d.torsoH, d.torsoD, m.grey, null, torso3D);
+    // Head 3D (parent: torso 3D; chirAxes.zen: head, eyes, antennas)
+    head3D = createObject3D(torso3D, 0, d.torsoH/2, -d.torsoD/2);
+    createCube(d.headW, d.headH, d.headD, m.beige, null, head3D, 0, d.headH/2, d.headD/2);
+    createCube(d.eyeW, d.eyeH, d.eyeD, m.white, null, head3D, -d.headW/4, 3*d.headH/5, d.headD);
+    createCube(d.eyeW, d.eyeH, d.eyeD, m.white, null, head3D, d.headW/4, 3*d.headH/5, d.headD);
+    createCube(d.antennaW, d.antennaH, d.antennaD, m.red, null, head3D, -d.headW/4, d.headH, 0);
+    createCube(d.antennaW, d.antennaH, d.antennaD, m.red, null, head3D, d.headW/4, d.headH, 0);
     // Arms 3Ds (parent: torso 3D; children: upper arms, exhaust pipes, lower arms)
-    lArm3D = createObject3D(torso3D, -torsoW/2, 0, -torsoD/2);
-    rArm3D = createObject3D(torso3D, torsoW/2, 0, -torsoD/2);
-    const uArmW = 80, uArmH = 160, uArmD = 80;
-    createCube(uArmW, uArmH, uArmD, 0x035f53, null, lArm3D, -uArmW/2, 0, -uArmD/2);
-    createCube(uArmW, uArmH, uArmD, 0x035f53, null, rArm3D, uArmW/2, 0, -uArmD/2);
-    const pipeR = 10, pipeH = 120;
-    createCylinder(pipeR, pipeR, pipeH, 0x808080, null, lArm3D, -pipeR-uArmW, 3*uArmH/8, pipeR-uArmD);
-    createCylinder(pipeR, pipeR, pipeH, 0x808080, null, rArm3D, pipeR+uArmW, 3*uArmH/8, pipeR-uArmD);
-    const lArmW = 80, lArmH = 80, lArmD = 240;
-    createCube(lArmW, lArmH, lArmD, 0xffae42, null, lArm3D, -uArmW/2, -lArmH/2-uArmH/2, lArmD/2-uArmD);
-    createCube(lArmW, lArmH, lArmD, 0xffae42, null, rArm3D, uArmW/2, -lArmH/2-uArmH/2, lArmD/2-uArmD);
+    lArm3D = createObject3D(torso3D, -d.torsoW/2, 0, -d.torsoD/2);
+    rArm3D = createObject3D(torso3D, d.torsoW/2, 0, -d.torsoD/2);
+    createCube(d.uArmW, d.uArmH, d.uArmD, m.darkgreen, null, lArm3D, -d.uArmW/2, 0, -d.uArmD/2);
+    createCube(d.uArmW, d.uArmH, d.uArmD, m.darkgreen, null, rArm3D, d.uArmW/2, 0, -d.uArmD/2);
+    createCylinder(d.pipeR, d.pipeR, d.pipeH, m.grey, null, lArm3D, -d.pipeR-d.uArmW, 3*d.uArmH/8, d.pipeR-d.uArmD);
+    createCylinder(d.pipeR, d.pipeR, d.pipeH, m.grey, null, rArm3D, d.pipeR+d.uArmW, 3*d.uArmH/8, d.pipeR-d.uArmD);
+    createCube(d.lArmW, d.lArmH, d.lArmD, m.amber, null, lArm3D, -d.uArmW/2, -d.lArmH/2-d.uArmH/2, d.lArmD/2-d.uArmD);
+    createCube(d.lArmW, d.lArmH, d.lArmD, m.amber, null, rArm3D, d.uArmW/2, -d.lArmH/2-d.uArmH/2, d.lArmD/2-d.uArmD);
     // Abdomen 3D (parent: torso 3D; children: abdomen, waist 3D)
-    abdomen3D = createObject3D(torso3D, 0, -torsoH/2, 0);
-    const abdomenW = 80, abdomenH = 80, abdomenD = 160;
-    createCube(abdomenW, abdomenH, abdomenD, 0x035f53, null, abdomen3D, 0, -abdomenH/2, 0);
+    abdomen3D = createObject3D(torso3D, 0, -d.torsoH/2, 0);
+    createCube(d.abdomenW, d.abdomenH, d.abdomenD, m.darkgreen, null, abdomen3D, 0, -d.abdomenH/2, 0);
     // Waist 3D (parent: abdomen 3D; children: waist, front wheels, thighs 3D)
-    waist3D = createObject3D(abdomen3D, 0, -abdomenH, abdomenD/8);
-    const waistW = 240, waistH = 80, waistD = 120;
-    createCube(waistW, waistH, waistD, 0x808080, null, waist3D, 0, -waistH/2, 0);
-    const wheelR = 40, wheelH = 40;
-    const rotAxis = new THREE.Vector3(0, 0, 1);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, waist3D, -wheelH/2-waistW/2, -3*waistH/4, 0);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, waist3D, wheelH/2+waistW/2, -3*waistH/4, 0);
+    waist3D = createObject3D(abdomen3D, 0, -d.abdomenH, d.abdomenD/8);
+    createCube(d.waistW, d.waistH, d.waistD, m.grey, null, waist3D, 0, -d.waistH/2, 0);
+    createCylinder(d.wheelR, d.wheelR, d.wheelH, m.darkgrey, rAxes.z, waist3D, -d.wheelH/2-d.waistW/2, -3*d.waistH/4, 0);
+    createCylinder(d.wheelR, d.wheelR, d.wheelH, m.darkgrey, rAxes.z, waist3D, d.wheelH/2+d.waistW/2, -3*d.waistH/4, 0);
     // Thighs 3D (parent: waist 3D; children: thighs, legs 3D)
-    thighs3D = createObject3D(waist3D, 0, -waistH, -waistD/2);
-    const thighW = 40, thighH = 120, thighD = 40;
-    createCube(thighW, thighH, thighD, 0x3492da, null, thighs3D, -waistW/3, -thighH/2, -thighD/2);
-    createCube(thighW, thighH, thighD, 0x3492da, null, thighs3D, waistW/3, -thighH/2, -thighD/2);
+    thighs3D = createObject3D(waist3D, 0, -d.waistH, -d.waistD/2);
+    createCube(d.thighW, d.thighH, d.thighD, m.lightblue, null, thighs3D, -d.waistW/3, -d.thighH/2, -d.thighD/2);
+    createCube(d.thighW, d.thighH, d.thighD, m.lightblue, null, thighs3D, d.waistW/3, -d.thighH/2, -d.thighD/2);
     // Legs 3D (parents: thighs 3D; children: legs, back wheels, trailer socket, boots 3D)
-    legs3D = createObject3D(thighs3D, 0, -thighH, -thighD);
-    const legW = 80, legH = 320, legD = 80;
-    createCube(legW, legH, legD, 0x3630a6, null, legs3D, -waistW/3, -legH/2, 0);
-    createCube(legW, legH, legD, 0x3630a6, null, legs3D, waistW/3, -legH/2, 0);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, legs3D, -waistW/3-wheelH/2-legW/2, -7*legH/16, legD/4);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, legs3D, -waistW/3-wheelH/2-legW/2, -13*legH/16, legD/4);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, legs3D, waistW/3+wheelH/2+legW/2, -7*legH/16, legD/4);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, legs3D, waistW/3+wheelH/2+legW/2, -13*legH/16, legD/4);
-    const socketW = 40, socketH = 40, socketD = 40;
-    createCube(socketW, socketH, socketD, 0xdac134, null, legs3D, -waistW/3+legW/4, -5*legH/16, -3*socketD/2);
-    createCube(socketW, socketH, socketD, 0xdac134, null, legs3D, waistW/3-legW/4, -5*legH/16, -3*socketD/2);
+    legs3D = createObject3D(thighs3D, 0, -d.thighH, -d.thighD);
+    createCube(d.legW, d.legH, d.legD, m.darkblue, null, legs3D, -d.waistW/3, -d.legH/2, 0);
+    createCube(d.legW, d.legH, d.legD, m.darkblue, null, legs3D, d.waistW/3, -d.legH/2, 0);
+    createCylinder(d.wheelR, d.wheelR, d.wheelH, m.darkgrey, rAxes.z, legs3D, -d.waistW/3-d.wheelH/2-d.legW/2, -7*d.legH/16, d.legD/4);
+    createCylinder(d.wheelR, d.wheelR, d.wheelH, m.darkgrey, rAxes.z, legs3D, -d.waistW/3-d.wheelH/2-d.legW/2, -13*d.legH/16, d.legD/4);
+    createCylinder(d.wheelR, d.wheelR, d.wheelH, m.darkgrey, rAxes.z, legs3D, d.waistW/3+d.wheelH/2+d.legW/2, -7*d.legH/16, d.legD/4);
+    createCylinder(d.wheelR, d.wheelR, d.wheelH, m.darkgrey, rAxes.z, legs3D, d.waistW/3+d.wheelH/2+d.legW/2, -13*d.legH/16, d.legD/4);
+    createCube(d.socketW, d.socketH, d.socketD, m.lime, null, legs3D, -d.waistW/3+d.legW/4, -5*d.legH/16, -3*d.socketD/2);
+    createCube(d.socketW, d.socketH, d.socketD, m.lime, null, legs3D, d.waistW/3-d.legW/4, -5*d.legH/16, -3*d.socketD/2);
     // Boots 3D (parents: legs 3D; children: boots)
-    boots3D = createObject3D(legs3D, 0, -legH, legD/2);
-    const bootW = 80, bootH = 40, bootD = 60;
-    createCube(bootW, bootH, bootD, 0x131056, null, boots3D, -waistW/3, -bootH/2, bootD/2);
-    createCube(bootW, bootH, bootD, 0x131056, null, boots3D, waistW/3, -bootH/2, bootD/2);
+    boots3D = createObject3D(legs3D, 0, -d.legH, d.legD/2);
+    createCube(d.bootW, d.bootH, d.bootD, m.grey, null, boots3D, -d.waistW/3, -d.bootH/2, d.bootD/2);
+    createCube(d.bootW, d.bootH, d.bootD, m.grey, null, boots3D, d.waistW/3, -d.bootH/2, d.bootD/2);
 }
 
 function createTrailer() {
 
     // Trailer 3D (parent: scene; children: body, coupler, latches 3Ds, plate 3D)
-    trailer3D = createObject3D(scene, 300, 40, -1080);
-    const bodyW = 240, bodyH = 280, bodyD = 1160;
-    createCube(bodyW, bodyH, bodyD, 0xff606b, null, trailer3D);
-    const couplerW = 80, couplerH = 40, couplerD = 120;
-    createCube(couplerW, couplerH, couplerD, 0x808080, null, trailer3D, 0, -couplerH/2-bodyH/2, -5*couplerD/6+bodyD/2);
-    const latchW = 40, latchH = 40, latchD = 40;
+    trailer3D = createObject3D(scene, 500, d.bodyH/2+d.plateH+d.chassisH+d.wheelR/2, -1250);
+    createCube(d.bodyW, d.bodyH, d.bodyD, m.salmon, null, trailer3D);
+    createCube(d.couplerW, d.couplerH, d.couplerD, m.grey, null, trailer3D, 0, -d.couplerH/2-d.bodyH/2, -5*d.couplerD/6+d.bodyD/2);
     // Latches 3Ds (parent: trailer 3D; children: latches)
-    lLatch3D = createObject3D(trailer3D, -latchW, -latchH/2-bodyH/2, -latchD+bodyD/2);
-    rLatch3D = createObject3D(trailer3D, latchW, -latchH/2-bodyH/2, -latchD+bodyD/2);
-    createCube(latchW, latchH, latchD, 0x101010, null, lLatch3D, latchW/2, 0, latchD/2);
-    createCube(latchW, latchH, latchD, 0x101010, null, rLatch3D, -latchW/2, 0, latchD/2);
+    lLatch3D = createObject3D(trailer3D, -d.latchW, -d.latchH/2-d.bodyH/2, -d.latchD+d.bodyD/2);
+    rLatch3D = createObject3D(trailer3D, d.latchW, -d.latchH/2-d.bodyH/2, -d.latchD+d.bodyD/2);
+    createCube(d.latchW, d.latchH, d.latchD, m.black, null, lLatch3D, d.latchW/2, 0, d.latchD/2);
+    createCube(d.latchW, d.latchH, d.latchD, m.black, null, rLatch3D, -d.latchW/2, 0, d.latchD/2);
     // Plate 3D (parent: trailer 3D; children: plate, chassis 3D)
-    plate3D = createObject3D(trailer3D, 0, -bodyH/2, -bodyD/2);
-    const plateW = 240, plateH = 40, plateD = 760;
-    createCube(plateW, plateH, plateD, 0x808080, null, plate3D, 0, -plateH/2, plateD/2);
+    plate3D = createObject3D(trailer3D, 0, -d.bodyH/2, -d.bodyD/2);
+    createCube(d.plateW, d.plateH, d.plateD, m.grey, null, plate3D, 0, -d.plateH/2, d.plateD/2);
     // Chassis 3D (parent: plate 3D; children: chassis, wheels)
-    chassis3D = createObject3D(plate3D, 0, -plateH, 0);
-    const chassisW = 240, chassisH = 80, chassisD = 400;
-    createCube(chassisW, chassisH, chassisD, 0x222222, null, chassis3D, 0, -chassisH/2, chassisD/2);
-    const wheelR = 40, wheelH = 40;
-    const rotAxis = new THREE.Vector3(0, 0, 1);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, chassis3D, -wheelH/2-chassisW/2, -3*chassisH/4, 3*chassisD/10);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, chassis3D, wheelH/2+chassisW/2, -3*chassisH/4, 3*chassisD/10);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, chassis3D, -wheelH/2-chassisW/2, -3*chassisH/4, 7*chassisD/10);
-    createCylinder(wheelR, wheelR, wheelH, 0x5a5a5a, rotAxis, chassis3D, wheelH/2+chassisW/2, -3*chassisH/4, 7*chassisD/10);
+    chassis3D = createObject3D(plate3D, 0, -d.plateH, 0);
+    createCube(d.chassisW, d.chassisH, d.chassisD, m.black, null, chassis3D, 0, -d.chassisH/2, d.chassisD/2);
+    createCylinder(d.wheelR, d.wheelR, d.wheelH, m.darkgrey, rAxes.z, chassis3D, -d.wheelH/2-d.chassisW/2, -3*d.chassisH/4, 3*d.chassisD/10);
+    createCylinder(d.wheelR, d.wheelR, d.wheelH, m.darkgrey, rAxes.z, chassis3D, d.wheelH/2+d.chassisW/2, -3*d.chassisH/4, 3*d.chassisD/10);
+    createCylinder(d.wheelR, d.wheelR, d.wheelH, m.darkgrey, rAxes.z, chassis3D, -d.wheelH/2-d.chassisW/2, -3*d.chassisH/4, 7*d.chassisD/10);
+    createCylinder(d.wheelR, d.wheelR, d.wheelH, m.darkgrey, rAxes.z, chassis3D, d.wheelH/2+d.chassisW/2, -3*d.chassisH/4, 7*d.chassisD/10);
 }
 
 /////////////////////////////////////////
@@ -397,12 +391,11 @@ function update(delta) {
             }
         }
     } else {
-        if (!inCouplingPosition) {
-            //console.log("positions", trailer3D.position.z, trailer3D.position.x)
+        if (!inCouplingPosition) { // move andrew tate latches
             moveTrailerToCouplingPosition();
         } else {
             console.log("coupling");
-            doCouplingAnimation();
+            doCouplingAnimation(delta);
         }
     }
     // check if robotruck is in robo or truck mode to update AABB
@@ -410,7 +403,7 @@ function update(delta) {
 }
 
 
-function doCouplingAnimation() {
+function doCouplingAnimation(delta) {
     //bring the z position to -780
     let positionZ = trailer3D.position.z;
     if (positionZ < -780) {
@@ -431,7 +424,7 @@ function moveTrailerToCouplingPosition() {
         trailer3D.position.z += deltaZ;
     else if (positionZ > -1060)
         trailer3D.position.z -= deltaZ;
-    if (positionX < 0)
+    else if (positionX < 0)
         trailer3D.position.x += deltaX;
     else if (positionX > 0)
         trailer3D.position.x -= deltaX;
@@ -544,7 +537,7 @@ function onKeyDown(e) {
             break;
         // Visual Representation Controls (key 6)
         case 54: // 6
-            materials.forEach(function (material) {
+            m.forEach(function (material) {
                 material.wireframe = !material.wireframe;
             });
             break;
@@ -571,6 +564,10 @@ function onKeyUp(e) {
 
 function rotateHead(speed, delta) {
     const target = speed > 0 ? Math.PI : 0;
+    if (target - head3DAngle < speed * delta) {
+        head3D.rotation.x = target;
+        head3DAngle = target;
+    }
     if ((speed > 0 && head3DAngle + speed <= target) || (speed < 0 && head3DAngle + speed >= target)) {
         head3D.rotation.x -= speed * delta;
         head3DAngle += speed * delta;
@@ -579,6 +576,11 @@ function rotateHead(speed, delta) {
 
 function moveArms(speed, delta) {
     const target = speed > 0 ? 80 : 0;
+    if (target - armsOffset < speed * delta) {
+        lArm3D.position.x = target;
+        rArm3D.position.x = -target;
+        armsOffset = target;
+    }
     if ((speed > 0 && armsOffset + speed <= target) || (speed < 0 && armsOffset + speed >= target)) {
         lArm3D.position.x += speed * delta;
         rArm3D.position.x -= speed * delta;
@@ -588,6 +590,10 @@ function moveArms(speed, delta) {
 
 function rotateThighs(speed, delta) {
     const target = speed > 0 ? Math.PI / 2 : 0;
+    if (target - thighs3DAngle < speed * delta) {
+        thighs3D.rotation.x = target;
+        thighs3DAngle = target;
+    }
     if ((speed > 0 && thighs3DAngle + speed <= target) || (speed < 0 && thighs3DAngle + speed >= target)) {
         thighs3D.rotation.x += speed * delta;
         thighs3DAngle += speed * delta;
@@ -596,6 +602,10 @@ function rotateThighs(speed, delta) {
 
 function rotateBoots(speed, delta) {
     const target = speed > 0 ? Math.PI / 2 : 0;
+    if (target - boots3DAngle < speed * delta) {
+        boots3D.rotation.x = target;
+        boots3DAngle = target;
+    }
     if ((speed > 0 && boots3DAngle + speed <= target) || (speed < 0 && boots3DAngle + speed >= target)) {
         boots3D.rotation.x += speed * delta;
         boots3DAngle += speed * delta;
