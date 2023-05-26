@@ -11,6 +11,7 @@ let previousTime = 0, currentTime = 0;
 // Cameras
 let camera;
 const cameras = {front: null, side: null, top: null, iso: null, persp: null};
+let controls;
 
 // Keys
 let keys = {};
@@ -22,6 +23,7 @@ const colors = {
 };
 let m = {};
 let edgesMaterial;
+let boundingBoxesMaterial;
 
 // Axes Helper and all Rotation Axes
 let axesHelper;
@@ -56,9 +58,11 @@ let latches3DAngle = 0;
 
 // Bounding Boxes
 let roboTruckAABB, trailerAABB;
+let roboTruckBoundingBox, trailerBoundingBox;
 
 // Animation phases
-let coupling = false, inCouplingPosition = false;
+let coupling = false, trailerBehindTruck = false;
+let latchesLocked = false, unlockingLatches = false;
 
 /////////////////////
 /* CREATE SCENE(S) */
@@ -73,7 +77,7 @@ function createScene() {
     // Create RoboTruck, Trailer and respective bounding boxes
     createMaterials();
     createRoboTruck();
-    createRobotAABB();
+    updateRoboTruckAABB();
     createTrailer();
 }
 
@@ -140,6 +144,7 @@ function createMaterials() {
         m[name] = new THREE.MeshBasicMaterial({ color: color, wireframe: false });
     // Edges material
     edgesMaterial = new THREE.LineBasicMaterial({ color: colors.black, visible: false });
+    boundingBoxesMaterial = new THREE.LineBasicMaterial({ color: colors.red, visible: false });
 }
 
 function createGeometry(type, parameters, material, rotAxis, parent, x = 0, y = 0, z = 0) {
@@ -308,6 +313,12 @@ function updateTrailerAABB(newBody3DPos) {
         newBody3DPos.y + d.bodyH/2,
         newBody3DPos.z + d.bodyD/2
     );
+    scene.remove(trailerBoundingBox);
+    const boxGeometry = new THREE.BoxGeometry(d.bodyW + 2*d.wheelH, d.bodyH + d.plateH + d.chassisH + d.wheelR/2, d.bodyD);
+    const edgesGeometry = new THREE.EdgesGeometry(boxGeometry);
+    trailerBoundingBox = new THREE.LineSegments(edgesGeometry, boundingBoxesMaterial);
+    trailerBoundingBox.position.set(newBody3DPos.x, newBody3DPos.y, newBody3DPos.z);
+    scene.add(trailerBoundingBox);
 }
 
 function isTruck() {
@@ -326,17 +337,12 @@ function updateRoboTruckAABB() {
         createTruckAABB();
     else
         createRobotAABB();
-}
-
-///////////////////////
-/* HANDLE COLLISIONS */
-///////////////////////
-
-function handleCollisions() {
-
-    // If RoboTruck is in truck mode, begin coupling animation
-    if (isTruck())
-        coupling = true;
+    scene.remove(roboTruckBoundingBox);
+    const boxGeometry = new THREE.BoxGeometry(roboTruckAABB[1][0]-roboTruckAABB[0][0], roboTruckAABB[1][1]-roboTruckAABB[0][1], roboTruckAABB[1][2]-roboTruckAABB[0][2]);
+    const edgesGeometry = new THREE.EdgesGeometry(boxGeometry);
+    roboTruckBoundingBox = new THREE.LineSegments(edgesGeometry, boundingBoxesMaterial);
+    roboTruckBoundingBox.position.set((roboTruckAABB[1][0]+roboTruckAABB[0][0])/2, (roboTruckAABB[1][1]+roboTruckAABB[0][1])/2, (roboTruckAABB[1][2]+roboTruckAABB[0][2])/2);
+    scene.add(roboTruckBoundingBox);
 }
 
 ////////////
@@ -345,7 +351,18 @@ function handleCollisions() {
 
 function update(delta) {
     let tentativeBody3DPos;
-    if (!coupling) {
+    if (unlockingLatches) { // If Trailer is unlocking latches
+        rotateLatches(-rotationSpeed * 2, delta);
+    } else if (coupling) { // If Trailer is coupling with RoboTruck
+        if (!trailerBehindTruck)
+            moveTrailerBehindTruck();
+        else {
+            console.log("coupling");
+            doCouplingAnimation(delta);
+        }
+    } else if (unlockingLatches) { // If Trailer is unlocking latches
+        rotateLatches(-rotationSpeed, delta);
+    } else { // If Trailer is not coupling with RoboTruck nor unlocking latches
         for (let k in keys) {
             if (keys[k] === true) {
                 switch (k) {
@@ -413,45 +430,42 @@ function update(delta) {
                 }
             }
         }
-    } else {
-        if (!inCouplingPosition) // move and rotate latches
-            moveTrailerToCouplingPosition();
-        else {
-            console.log("coupling");
-            doCouplingAnimation(delta);
-        }
     }
 }
 
 
 function doCouplingAnimation(delta) {
-    // Bring the z position to -780
-    let positionZ = body3D.position.z;
-    if (positionZ < -780) {
-        let deltaZ = Math.min(20, Math.abs(-780 - body3D.position.z));
+
+    // If Trailer is not yet in its final position, move it forward
+    const targetZ = - d.torsoD/2 - d.uppArmD - d.socketD - d.bodyD/2;
+    const positionZ = body3D.position.z;
+    if (positionZ < targetZ) {
+        const deltaZ = Math.min(movementSpeed * 2, targetZ - positionZ);
         body3D.position.z += deltaZ;
-    } else {
-        rotateLatches(rotationSpeed, delta)
-    }
+    } else
+        // If Trailer is already in its final position, rotate latches
+        rotateLatches(rotationSpeed, delta);
 }
 
-function moveTrailerToCouplingPosition() {
-    // If z position is not 1080, update by 20 or 1080 - z, whichever is smaller
-    let positionZ = body3D.position.z;
-    let positionX = body3D.position.x;
-    let deltaZ = Math.min(20, Math.abs(-1060 - body3D.position.z));
-    let deltaX = Math.min(20, Math.abs(0 - body3D.position.x));
-    if (positionZ < -1060)
-        body3D.position.z += deltaZ;
-    else if (positionZ > -1060)
-        body3D.position.z -= deltaZ;
-    else if (positionX < 0)
+function moveTrailerBehindTruck() {
+
+    // If Trailer is not yet behind the Truck, move it in that direction
+    const targetX = 0;
+    const targetZ = - d.torsoD/2 - d.uppArmD - d.legH - d.bootD - d.bodyD/2;
+    const positionX = body3D.position.x;
+    const positionZ = body3D.position.z;
+    const deltaX = Math.min(movementSpeed * 2, Math.abs(targetX - positionX));
+    const deltaZ = Math.min(movementSpeed * 2, Math.abs(targetZ - positionZ));
+    if (positionX < targetX)
         body3D.position.x += deltaX;
-    else if (positionX > 0)
+    else if (positionX > targetX)
         body3D.position.x -= deltaX;
-    else {
-        inCouplingPosition = true;
-    }
+    if (positionZ < targetZ)
+        body3D.position.z += deltaZ;
+    else if (positionZ > targetZ)
+        body3D.position.z -= deltaZ;
+    if (positionX === targetX && positionZ === targetZ)
+        trailerBehindTruck = true;
 }
 
 /////////////
@@ -483,6 +497,11 @@ function init() {
     cameras.persp = createPerspectiveCamera(750, 500, 500, 0, 0, 0, 1, 5000, 70);
     camera = cameras.front;
 
+    // Create camera controls and disable them and their arrow keys
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.keys = {LEFT: null, UP: null, RIGHT: null, BOTTOM: null};
+    controls.enabled = false;
+
     // Create Axes Helper and Rotation Axes to be used
     axesHelper = new THREE.AxesHelper(750);
     rAxes.x = new THREE.Vector3(1, 0, 0);
@@ -490,16 +509,6 @@ function init() {
     rAxes.z = new THREE.Vector3(0, 0, 1);
 
     createScene();
-
-    // TODO: remove this controls line later
-    const controls = new THREE.OrbitControls(camera, renderer.domElement);
-    // disable arrow keys for camera controls
-    controls.keys = {
-        LEFT: null, //left arrow
-        UP: null, // up arrow
-        RIGHT: null, // right arrow
-        BOTTOM: null // down arrow
-    }
 
     previousTime = performance.now();
     render();
@@ -549,8 +558,6 @@ function onKeyDown(e) {
         case 49: // 1
             camera = cameras.front;
             updateOrthographicCamera(camera);
-            // TODO: rm this controls line later
-            let controls = new THREE.OrbitControls(camera, renderer.domElement);
             break;
         case 50: // 2
             camera = cameras.side;
@@ -565,19 +572,27 @@ function onKeyDown(e) {
             updateOrthographicCamera(camera);
             break;
         case 53: // 5
-            updatePerspectiveCamera(camera.persp);
             camera = cameras.persp;
+            updatePerspectiveCamera(camera);
             break;
-        // Visual Representation Controls (keys 6, 7, 8)
-        case 54: // 6
+        case 67: // C: toggle camera controls
+            controls.enabled = !controls.enabled;
+            controls.object = camera;
+            controls.update();
+            break;
+        // Visual Representation Controls (keys 6, 7, 8, 9)
+        case 54: // 6: toggle wireframe
             Object.values(m).forEach(function(material) {
                 material.wireframe = !material.wireframe;
             });
             break;
-        case 55: // 7
+        case 55: // 7: toggle edges
             edgesMaterial.visible = !edgesMaterial.visible;
             break;
-        case 56: // 8
+        case 56: // 8: toggle bounding boxes
+            boundingBoxesMaterial.visible = !boundingBoxesMaterial.visible;
+            break;
+        case 57: // 9: toggle axes helper
             if (!isAxesHelperVisible) {
                 scene.add(axesHelper);
                 isAxesHelperVisible = true;
@@ -597,8 +612,8 @@ function onKeyDown(e) {
 
 function onKeyUp(e) {
 
-    // Ignore 1 to 8 keys because they are used for camera switching and visual representation
-    if (e.keyCode >= 49 && e.keyCode <= 56)
+    // Ignore 1 to 9 and C keys because they are used for camera switching and visual representation
+    if ((e.keyCode >= 49 && e.keyCode <= 57) || e.keyCode === 67)
         return;
     keys[e.keyCode] = false;
 }
@@ -674,8 +689,10 @@ function executeMoveTrailer(newBody3DPos) {
 
     updateTrailerAABB(newBody3DPos);
     // If there is a collision with RoboTruck in truck mode, set coupling animation to true
-    if (checkCollisions() && isTruck())
+    if (checkCollisions() && isTruck() && !latchesLocked)
         coupling = true;
+    if (latchesLocked && !isTruck())
+        unlockingLatches = true;
     // If there are no collisions and Trailer is not out of bounds, move it
     else if (!checkCollisions() && !checkBoundaries(newBody3DPos))
         body3D.position.set(newBody3DPos.x, newBody3DPos.y, newBody3DPos.z);
@@ -689,6 +706,11 @@ function rotateLatches(speed, delta) {
         rLatch3D.rotation.y = target;
         latches3DAngle = target;
         coupling = false;
+        trailerBehindTruck = false;
+        latchesLocked = !latchesLocked;
+        // If the rotation is unlocking the latches, stop blocking the use of other keys
+        if (!latchesLocked)
+            unlockingLatches = !unlockingLatches;
     }
     if ((speed > 0 && latches3DAngle + speed * delta <= target) || (speed < 0 && latches3DAngle + speed * delta >= target)) {
         lLatch3D.rotation.y -= speed * delta;
