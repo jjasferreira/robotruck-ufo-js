@@ -1,5 +1,4 @@
 'use strict';   // Applies to all of script
-// TODO: add dark edges to components would look pretty cool
 
 //////////////////////
 /* GLOBAL VARIABLES */
@@ -47,9 +46,9 @@ const d = {
 };
 
 // Movements and Rotations
-let movementSpeed = 0.5 * 15;
+let movementSpeed = 5;
 let armsOffset = 0;
-let rotationSpeed = 0.008 * 15;
+let rotationSpeed = 0.1;
 let head3DAngle = 0;
 let thighs3DAngle = 0;
 let boots3DAngle = 0;
@@ -92,6 +91,17 @@ function createOrthographicCamera(x, y, z, lx, ly, lz, near, far) {
     return camera;
 }
 
+function updateOrthographicCamera(camera) {
+
+    const width = 3*window.innerWidth/4;
+    const height = 3*window.innerHeight/4;
+    camera.left = -width;
+    camera.right = width;
+    camera.top = height;
+    camera.bottom = -height;
+    camera.updateProjectionMatrix();
+}
+
 function createPerspectiveCamera(x, y, z, lx, ly, lz, near, far, fov) {
 
     const aspect = window.innerWidth / window.innerHeight;
@@ -99,6 +109,12 @@ function createPerspectiveCamera(x, y, z, lx, ly, lz, near, far, fov) {
     camera.position.set(x, y, z);
     camera.lookAt(lx, ly, lz);
     return camera;
+}
+
+function updatePerspectiveCamera(camera) {
+
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
 }
 
 /////////////////////
@@ -149,8 +165,8 @@ function createGeometry(type, parameters, material, rotAxis, parent, x = 0, y = 
     return mesh;
 }
 
-
 function createRoboTruck() {
+
     // Torso 3D (parent: scene; children: torso, head 3D, arms 3Ds, abdomen 3D)
     torso3D = createObject3D(scene, 0, d.torsoH/2+d.abdomenH+d.waistH+d.wheelR/2, 0);
     createGeometry('box', [d.torsoW, d.torsoH, d.torsoD], m.grey, null, torso3D);
@@ -199,6 +215,7 @@ function createRoboTruck() {
 }
 
 function createTrailer() {
+
     // Body 3D (parent: scene; children: body, coupler, latches 3Ds, plate 3D)
     body3D = createObject3D(scene, 500, d.bodyH/2+d.plateH+d.chassisH+d.wheelR/2, -1250);
     createGeometry('box', [d.bodyW, d.bodyH, d.bodyD], m.salmon, null, body3D, 0, 0, 0);
@@ -258,32 +275,27 @@ function createBoundingBox(xMin, yMin, zMin, xMax, yMax, zMax) {
 }
 
 function createRobotAABB() {
+
     roboTruckAABB = createBoundingBox(
-        -d.bodyW/2 - d.wheelH,
+        - d.torsoW/2 - d.uppArmW - 2*d.pipeR,
         d.wheelR/2 - d.thighH - d.legH - d.bootH,
-        d.wheelR*2-d.lowArmD,
-        d.bodyW/2 + d.wheelH,
+        - d.torsoD/2 - d.uppArmD,
+        d.torsoW/2 + d.uppArmW + 2*d.pipeR,
         d.wheelR/2 + d.waistH + d.abdomenH + d.torsoH + d.headH + d.antennaH/2,
-        d.wheelR*2
+        d.torsoD/2
     );
-    // show the bounding box
-    //createGeometry('box', [roboTruckAABB[1][0]-roboTruckAABB[0][0], roboTruckAABB[1][1]-roboTruckAABB[0][1], roboTruckAABB[1][2]-roboTruckAABB[0][2]], m.red, null, scene, (roboTruckAABB[1][0]+roboTruckAABB[0][0])/2, (roboTruckAABB[1][1]+roboTruckAABB[0][1])/2, (roboTruckAABB[1][2]+roboTruckAABB[0][2])/2)
 }
 
 function createTruckAABB() {
+
     roboTruckAABB = createBoundingBox(
-        -d.bodyW/2 - d.wheelH,
+        - d.torsoW/2 - d.wheelH,
         0,
-        -d.waistD/2 - d.thighH - d.legH - d.bootH,
-        d.bodyW/2 + d.wheelH,
-        d.bodyH + d.abdomenH,
+        - d.torsoD/2 - d.uppArmD - d.legH - d.bootD,
+        d.torsoW/2 + d.wheelH,
+        d.wheelR/2 + d.waistH + d.abdomenH + d.torsoH/2 + d.pipeH,
         d.wheelR * 2
     );
-
-    // show the bounding box
-    //createGeometry('box', [roboTruckAABB[1][0]-roboTruckAABB[0][0], roboTruckAABB[1][1]-roboTruckAABB[0][1], roboTruckAABB[1][2]-roboTruckAABB[0][2]], m.red, null, scene, (roboTruckAABB[1][0]+roboTruckAABB[0][0])/2, (roboTruckAABB[1][1]+roboTruckAABB[0][1])/2, (roboTruckAABB[1][2]+roboTruckAABB[0][2])/2)
-
-
 }
 
 function updateTrailerAABB(newBody3DPos) {
@@ -298,14 +310,8 @@ function updateTrailerAABB(newBody3DPos) {
     );
 }
 
-/*function isTruck() {
-    const margin_pi = 0.02, margin_half_pi = 0.01;
-    return head3DAngle >= Math.PI - margin_pi &&
-           thighs3DAngle >= Math.PI/2 - margin_half_pi &&
-           boots3DAngle >= Math.PI/2 - margin_half_pi;
-}*/
-
 function isTruck() {
+
     // Check if RoboTruck is in truck mode
     return (
         head3DAngle === Math.PI &&
@@ -381,19 +387,19 @@ function update(delta) {
                         break;
                     // Trailer Movement Controls (keys left, up, right, down)
                     case "37": // left
-                        tentativeBody3DPos = checkMoveTrailer('x', -movementSpeed * 10, delta);
+                        tentativeBody3DPos = checkMoveTrailer('x', -movementSpeed, delta);
                         executeMoveTrailer(tentativeBody3DPos);
                         break;
                     case "38": // up
-                        tentativeBody3DPos = checkMoveTrailer('z', -movementSpeed * 10, delta);
+                        tentativeBody3DPos = checkMoveTrailer('z', -movementSpeed, delta);
                         executeMoveTrailer(tentativeBody3DPos);
                         break;
                     case "39": // right
-                        tentativeBody3DPos = checkMoveTrailer('x', movementSpeed * 10, delta);
+                        tentativeBody3DPos = checkMoveTrailer('x', movementSpeed, delta);
                         executeMoveTrailer(tentativeBody3DPos);
                         break;
                     case "40": // down
-                        tentativeBody3DPos = checkMoveTrailer('z', movementSpeed * 10, delta);
+                        tentativeBody3DPos = checkMoveTrailer('z', movementSpeed, delta);
                         executeMoveTrailer(tentativeBody3DPos);
                         break;
                     // Latches Rotation Controls (keys H, Y)
@@ -474,14 +480,11 @@ function init() {
     cameras.side = createOrthographicCamera(500, 0, -600, 0, 0, -600, -750, 5000);
     cameras.top = createOrthographicCamera(0, 500, -400, 0, 0, -400, 0, 5000);
     cameras.iso = createOrthographicCamera(1000, 500, 0, 500, 0, -500, -750, 5000);
-    cameras.persp = createPerspectiveCamera(1000, 500, 0, 500, 0, -500, -750, 5000, 45);
-    // set target for perspective camera
-    cameras.persp.lookAt(0, 0, 0);
+    cameras.persp = createPerspectiveCamera(750, 500, 500, 0, 0, 0, 1, 5000, 70);
     camera = cameras.front;
 
     // Create Axes Helper and Rotation Axes to be used
-    axesHelper = new THREE.AxesHelper(1000);
-    axesHelper.visible = true;
+    axesHelper = new THREE.AxesHelper(750);
     rAxes.x = new THREE.Vector3(1, 0, 0);
     rAxes.y = new THREE.Vector3(0, 1, 0);
     rAxes.z = new THREE.Vector3(0, 0, 1);
@@ -525,13 +528,13 @@ function animate() {
 ////////////////////////////
 
 function onResize() {
-    console.log("resize")
+    console.log('resize')
     renderer.setSize(window.innerWidth, window.innerHeight);
     if (window.innerHeight > 0 && window.innerWidth > 0) {
-        for (let i = 0; i < cameras.length; i++) {
-            cameras[i].aspect = window.innerWidth / window.innerHeight;
-            cameras[i].updateProjectionMatrix();
-        }
+        if (camera instanceof THREE.OrthographicCamera)
+            updateOrthographicCamera(camera);
+        else
+            updatePerspectiveCamera(camera);
     }
 }
 
@@ -545,22 +548,27 @@ function onKeyDown(e) {
         // Camera Controls (keys 1, 2, 3, 4, 5)
         case 49: // 1
             camera = cameras.front;
+            updateOrthographicCamera(camera);
             // TODO: rm this controls line later
             let controls = new THREE.OrbitControls(camera, renderer.domElement);
             break;
         case 50: // 2
             camera = cameras.side;
+            updateOrthographicCamera(camera);
             break;
         case 51: // 3
             camera = cameras.top;
+            updateOrthographicCamera(camera);
             break;
         case 52: // 4
             camera = cameras.iso;
+            updateOrthographicCamera(camera);
             break;
         case 53: // 5
+            updatePerspectiveCamera(camera.persp);
             camera = cameras.persp;
             break;
-        // Visual Representation Controls (keys 6, 7)
+        // Visual Representation Controls (keys 6, 7, 8)
         case 54: // 6
             Object.values(m).forEach(function(material) {
                 material.wireframe = !material.wireframe;
@@ -589,7 +597,7 @@ function onKeyDown(e) {
 
 function onKeyUp(e) {
 
-    // Ignore 1 to 7 keys because they are used for camera switching and visual representation
+    // Ignore 1 to 8 keys because they are used for camera switching and visual representation
     if (e.keyCode >= 49 && e.keyCode <= 56)
         return;
     keys[e.keyCode] = false;
@@ -682,7 +690,7 @@ function rotateLatches(speed, delta) {
         latches3DAngle = target;
         coupling = false;
     }
-    if ((speed > 0 && latches3DAngle + speed <= target) || (speed < 0 && latches3DAngle + speed >= target)) {
+    if ((speed > 0 && latches3DAngle + speed * delta <= target) || (speed < 0 && latches3DAngle + speed * delta >= target)) {
         lLatch3D.rotation.y -= speed * delta;
         rLatch3D.rotation.y += speed * delta;
         latches3DAngle += speed * delta;
