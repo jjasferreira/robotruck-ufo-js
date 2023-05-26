@@ -1,5 +1,26 @@
 'use strict';   // Applies to all of script
 
+/*
+    *  RoboTruck - key bindings:
+    * - '1' - change camera to front view
+    * - '2' - change camera to side view
+    * - '3' - change camera to top view
+    * - '4' - change camera to isometric view
+    * - '5' - change camera to perspective view
+    * - 'C' - toggle camera controls
+    * - '6' - toggle wireframe mode
+    * - '7' - toggle edges visibility
+    * - '8' - toggle bounding boxes visibility
+    * - '9' - toggle axes helper visibility
+    * - 'R/F' - rotate RoboTruck's head
+    * - 'E/D' - move RoboTruck's arms
+    * - 'W/S' - rotate RoboTruck's thighs
+    * - 'Q/A' - rotate RoboTruck's boots
+    * - '←/→' - move Trailer on x-axis
+    * - '↑/↓' - move Trailer on z-axis
+    * - 'Z' - reset Trailer's position and lathes rotation
+ */
+
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
@@ -18,8 +39,9 @@ let keys = {};
 
 // Colors, materials and geometry edges
 const colors = {
-    eggshell: 0xf0ead6, fog: 0x656597, grey: 0x808080, beige: 0xe8beac, white: 0xffffff, red: 0xff0000, darkgreen: 0x035f53, amber: 0xffae42,
-    darkgrey: 0x5a5a5a, lightblue: 0x3492da, darkblue: 0x3630a6, lime: 0xdac134, salmon: 0xff606b, black: 0x333333
+    eggshell: 0xf0ead6, fog: 0x656597, grey: 0x999999, beige: 0xe8beac, white: 0xffffff, red: 0xff0000,
+    darkgreen: 0x035f53, amber: 0xffae42, darkgrey: 0x404040, lightblue: 0x3492da, darkblue: 0x3630a6,
+    lime: 0x94cc1d, salmon: 0xff606b, black: 0x333333
 };
 let m = {};
 let edgesMaterial;
@@ -87,8 +109,8 @@ function createScene() {
 
 function createOrthographicCamera(x, y, z, lx, ly, lz, near, far) {
 
-    const width = 3*window.innerWidth/4;
-    const height = 3*window.innerHeight/4;
+    const width = 5*window.innerWidth/6;
+    const height = 5*window.innerHeight/6;
     const camera = new THREE.OrthographicCamera(-width, width, height, -height, near, far);
     camera.position.set(x, y, z);
     camera.lookAt(lx, ly, lz);
@@ -351,18 +373,19 @@ function updateRoboTruckAABB() {
 
 function update(delta) {
     let tentativeBody3DPos;
-    if (unlockingLatches) { // If Trailer is unlocking latches
-        rotateLatches(-rotationSpeed * 2, delta);
-    } else if (coupling) { // If Trailer is coupling with RoboTruck
+    // If Trailer is coupling with RoboTruck
+    if (coupling) {
         if (!trailerBehindTruck)
             moveTrailerBehindTruck();
         else {
             console.log("coupling");
             doCouplingAnimation(delta);
         }
-    } else if (unlockingLatches) { // If Trailer is unlocking latches
-        rotateLatches(-rotationSpeed, delta);
-    } else { // If Trailer is not coupling with RoboTruck nor unlocking latches
+    } // Else if Trailer is unlocking latches
+    else if (unlockingLatches) {
+        rotateLatches(-rotationSpeed * 2, delta);
+    } // If Trailer is not coupling with RoboTruck nor unlocking latches
+    else {
         for (let k in keys) {
             if (keys[k] === true) {
                 switch (k) {
@@ -419,20 +442,11 @@ function update(delta) {
                         tentativeBody3DPos = checkMoveTrailer('z', movementSpeed, delta);
                         executeMoveTrailer(tentativeBody3DPos);
                         break;
-                    // Latches Rotation Controls (keys H, Y)
-                    case "72": // H
-                    case "104": // h
-                        rotateLatches(rotationSpeed, delta);
-                        break;
-                    case "89": // Y
-                    case "121": // y
-                        rotateLatches(-rotationSpeed, delta);
                 }
             }
         }
     }
 }
-
 
 function doCouplingAnimation(delta) {
 
@@ -490,10 +504,10 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
     // Create all cameras and set default camera
-    cameras.front = createOrthographicCamera(0, 0, 500, 0, 0, 0, 0, 5000);
-    cameras.side = createOrthographicCamera(500, 0, -600, 0, 0, -600, -750, 5000);
-    cameras.top = createOrthographicCamera(0, 500, -400, 0, 0, -400, 0, 5000);
-    cameras.iso = createOrthographicCamera(1000, 500, 0, 500, 0, -500, -750, 5000);
+    cameras.front = createOrthographicCamera(0, 0, 500, 0, 0, 0, -500, 5000);
+    cameras.side = createOrthographicCamera(500, 0, 0, 0, 0, 0, -500, 5000);
+    cameras.top = createOrthographicCamera(0, 500, 0, 0, 0, 0, -500, 5000);
+    cameras.iso = createOrthographicCamera(500, 500, 500, 0, 0, 0, -500, 5000);
     cameras.persp = createPerspectiveCamera(750, 500, 500, 0, 0, 0, 1, 5000, 70);
     camera = cameras.front;
 
@@ -511,7 +525,6 @@ function init() {
     createScene();
 
     previousTime = performance.now();
-    render();
 
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('resize', onResize);
@@ -554,7 +567,7 @@ function onResize() {
 function onKeyDown(e) {
 
     switch (e.keyCode) {
-        // Camera Controls (keys 1, 2, 3, 4, 5)
+        // Camera Controls (keys 1, 2, 3, 4, 5, C)
         case 49: // 1
             camera = cameras.front;
             updateOrthographicCamera(camera);
@@ -575,24 +588,25 @@ function onKeyDown(e) {
             camera = cameras.persp;
             updatePerspectiveCamera(camera);
             break;
-        case 67: // C: toggle camera controls
+        case 67: // C
+        case 99: // c
             controls.enabled = !controls.enabled;
             controls.object = camera;
             controls.update();
             break;
-        // Visual Representation Controls (keys 6, 7, 8, 9)
-        case 54: // 6: toggle wireframe
+        // Visual Representation Controls (keys 6, 7, 8, 9, Z)
+        case 54: // 6
             Object.values(m).forEach(function(material) {
                 material.wireframe = !material.wireframe;
             });
             break;
-        case 55: // 7: toggle edges
+        case 55: // 7
             edgesMaterial.visible = !edgesMaterial.visible;
             break;
-        case 56: // 8: toggle bounding boxes
+        case 56: // 8
             boundingBoxesMaterial.visible = !boundingBoxesMaterial.visible;
             break;
-        case 57: // 9: toggle axes helper
+        case 57: // 9
             if (!isAxesHelperVisible) {
                 scene.add(axesHelper);
                 isAxesHelperVisible = true;
@@ -600,6 +614,17 @@ function onKeyDown(e) {
                 scene.remove(axesHelper);
                 isAxesHelperVisible = false;
             }
+            break;
+        case 90: // Z
+        case 122: // z
+            body3D.position.set(500, d.bodyH/2+d.plateH+d.chassisH+d.wheelR/2, -1250);
+            lLatch3D.rotation.y = 0;
+            rLatch3D.rotation.y = 0;
+            latches3DAngle = 0;
+            coupling = false;
+            trailerBehindTruck = false;
+            latchesLocked = false;
+            unlockingLatches = false;
             break;
         default:
             keys[e.keyCode] = true;
@@ -613,7 +638,7 @@ function onKeyDown(e) {
 function onKeyUp(e) {
 
     // Ignore 1 to 9 and C keys because they are used for camera switching and visual representation
-    if ((e.keyCode >= 49 && e.keyCode <= 57) || e.keyCode === 67)
+    if ((e.keyCode >= 49 && e.keyCode <= 57) || e.keyCode === 67 || e.keyCode === 99)
         return;
     keys[e.keyCode] = false;
 }
@@ -624,65 +649,76 @@ function onKeyUp(e) {
 
 function rotateHead(speed, delta) {
 
+    let adjustment;
     const target = speed > 0 ? Math.PI : 0;
     if (Math.abs(target - head3DAngle) < Math.abs(speed * delta)) {
-        head3D.rotation.x = target;
+        adjustment = target - head3DAngle;
         head3DAngle = target;
     }
     if ((speed > 0 && head3DAngle + speed * delta <= target) || (speed < 0 && head3DAngle + speed * delta >= target)) {
-        head3D.rotation.x -= speed * delta;
+        adjustment = speed * delta;
         head3DAngle += speed * delta;
     }
+    head3D.rotateOnWorldAxis(rAxes.x, -adjustment);
 }
 
 function moveArms(speed, delta) {
 
+    let adjustment;
     const target = speed > 0 ? 80 : 0;
     if (Math.abs(target - armsOffset) < Math.abs(speed * delta)) {
-        lArm3D.position.x += target - armsOffset;
-        rArm3D.position.x -= target - armsOffset;
+        adjustment = new THREE.Vector3(target - armsOffset, 0, 0);
         armsOffset = target;
     }
-    if ((speed > 0 && armsOffset + speed * delta <= target) || (speed < 0 && armsOffset + speed * delta >= target)) {
-        lArm3D.position.x += speed * delta;
-        rArm3D.position.x -= speed * delta;
+    else if ((speed > 0 && armsOffset + speed * delta <= target) || (speed < 0 && armsOffset + speed * delta >= target)) {
+        adjustment = new THREE.Vector3(speed * delta, 0, 0);
         armsOffset += speed * delta;
     }
+    lArm3D.position.add(adjustment);
+    rArm3D.position.add(adjustment.clone().negate());
 }
 
 function rotateThighs(speed, delta) {
+
+    let adjustment;
     const target = speed > 0 ? Math.PI / 2 : 0;
     if (Math.abs(target - thighs3DAngle) < Math.abs(speed * delta)) {
-        thighs3D.rotation.x = target;
+        adjustment = target - thighs3DAngle;
         thighs3DAngle = target;
     }
     if ((speed > 0 && thighs3DAngle + speed * delta <= target) || (speed < 0 && thighs3DAngle + speed * delta >= target)) {
-        thighs3D.rotation.x += speed * delta;
+        adjustment = speed * delta;
         thighs3DAngle += speed * delta;
     }
+    thighs3D.rotateOnWorldAxis(rAxes.x, adjustment);
 }
 
 function rotateBoots(speed, delta) {
 
+    let adjustment;
     const target = speed > 0 ? Math.PI / 2 : 0;
     if (Math.abs(target - boots3DAngle) < Math.abs(speed * delta)) {
-        boots3D.rotation.x = target;
+        adjustment = target - boots3DAngle;
         boots3DAngle = target;
     }
     if ((speed > 0 && boots3DAngle + speed * delta <= target) || (speed < 0 && boots3DAngle + speed * delta >= target)) {
-        boots3D.rotation.x += speed * delta;
+        adjustment = speed * delta;
         boots3DAngle += speed * delta;
     }
+    boots3D.rotateOnWorldAxis(rAxes.x, adjustment);
 }
 
 function checkMoveTrailer(axis, speed, delta) {
 
-    let tentativeBody3DPos = Object.assign({}, body3D.position);
+    let adjustment;
+    let tentativeBody3D = new THREE.Object3D();
+    tentativeBody3D.copy(body3D);
     if (axis === 'x')
-        tentativeBody3DPos.x += speed * delta;
+        adjustment = new THREE.Vector3(speed * delta, 0, 0);
     else if (axis === 'z')
-        tentativeBody3DPos.z += speed * delta;
-    return tentativeBody3DPos;
+        adjustment = new THREE.Vector3(0, 0, speed * delta);
+    tentativeBody3D.position.add(adjustment);
+    return tentativeBody3D.position;
 }
 
 function executeMoveTrailer(newBody3DPos) {
@@ -691,7 +727,7 @@ function executeMoveTrailer(newBody3DPos) {
     // If there is a collision with RoboTruck in truck mode, set coupling animation to true
     if (checkCollisions() && isTruck() && !latchesLocked)
         coupling = true;
-    if (latchesLocked && !isTruck())
+    else if (latchesLocked && !isTruck())
         unlockingLatches = true;
     // If there are no collisions and Trailer is not out of bounds, move it
     else if (!checkCollisions() && !checkBoundaries(newBody3DPos))
@@ -700,10 +736,10 @@ function executeMoveTrailer(newBody3DPos) {
 
 function rotateLatches(speed, delta) {
 
+    let adjustment;
     const target = speed > 0 ? Math.PI/2 : 0;
     if (Math.abs(target - latches3DAngle) < Math.abs(speed * delta)) {
-        lLatch3D.rotation.y = -target;
-        rLatch3D.rotation.y = target;
+        adjustment = target - latches3DAngle;
         latches3DAngle = target;
         coupling = false;
         trailerBehindTruck = false;
@@ -713,8 +749,9 @@ function rotateLatches(speed, delta) {
             unlockingLatches = !unlockingLatches;
     }
     if ((speed > 0 && latches3DAngle + speed * delta <= target) || (speed < 0 && latches3DAngle + speed * delta >= target)) {
-        lLatch3D.rotation.y -= speed * delta;
-        rLatch3D.rotation.y += speed * delta;
+        adjustment = speed * delta;
         latches3DAngle += speed * delta;
     }
+    lLatch3D.rotateOnWorldAxis(rAxes.y, -adjustment);
+    rLatch3D.rotateOnWorldAxis(rAxes.y, adjustment);
 }
