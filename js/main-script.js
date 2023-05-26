@@ -47,9 +47,9 @@ const d = {
 };
 
 // Movements and Rotations
-let movementSpeed = 0.5;
+let movementSpeed = 0.5 * 15;
 let armsOffset = 0;
-let rotationSpeed = 0.008 * 20; // TODO when rotating we need to check the minimum between the intended rotation and what's left. If rotation speed is not a divisor of full rotation angle, we get stuck before the end
+let rotationSpeed = 0.008 * 15;
 let head3DAngle = 0;
 let thighs3DAngle = 0;
 let boots3DAngle = 0;
@@ -258,27 +258,32 @@ function createBoundingBox(xMin, yMin, zMin, xMax, yMax, zMax) {
 }
 
 function createRobotAABB() {
-
     roboTruckAABB = createBoundingBox(
-        lArm3D.position.x - d.uppArmW - d.pipeR,
-        boots3D.position.y - d.bootH,
-        lArm3D.position.z - d.uppArmD,
-        rArm3D.position.x + d.uppArmW + d.pipeR,
-        head3D.position.y + d.headH + d.antennaH/2,
-        torso3D.position.z + d.torsoD/2
+        -d.bodyW/2 - d.wheelH,
+        d.wheelR/2 - d.thighH - d.legH - d.bootH,
+        d.wheelR*2-d.lowArmD,
+        d.bodyW/2 + d.wheelH,
+        d.wheelR/2 + d.waistH + d.abdomenH + d.torsoH + d.headH + d.antennaH/2,
+        d.wheelR*2
     );
+    // show the bounding box
+    //createGeometry('box', [roboTruckAABB[1][0]-roboTruckAABB[0][0], roboTruckAABB[1][1]-roboTruckAABB[0][1], roboTruckAABB[1][2]-roboTruckAABB[0][2]], m.red, null, scene, (roboTruckAABB[1][0]+roboTruckAABB[0][0])/2, (roboTruckAABB[1][1]+roboTruckAABB[0][1])/2, (roboTruckAABB[1][2]+roboTruckAABB[0][2])/2)
 }
 
 function createTruckAABB() {
-
     roboTruckAABB = createBoundingBox(
-        waist3D.position.x - d.waistW/2 - d.wheelH,
-        thighs3D.position.y - d.wheelR/2,
-        boots3D.position.z - d.bootD,
-        waist3D.position.x + d.waistW/2 + d.wheelH,
-        rArm3D.position.y + d.pipeH,
-        torso3D.position.z + d.torsoD/2
+        -d.bodyW/2 - d.wheelH,
+        0,
+        -d.waistD/2 - d.thighH - d.legH - d.bootH,
+        d.bodyW/2 + d.wheelH,
+        d.bodyH + d.abdomenH,
+        d.wheelR * 2
     );
+
+    // show the bounding box
+    //createGeometry('box', [roboTruckAABB[1][0]-roboTruckAABB[0][0], roboTruckAABB[1][1]-roboTruckAABB[0][1], roboTruckAABB[1][2]-roboTruckAABB[0][2]], m.red, null, scene, (roboTruckAABB[1][0]+roboTruckAABB[0][0])/2, (roboTruckAABB[1][1]+roboTruckAABB[0][1])/2, (roboTruckAABB[1][2]+roboTruckAABB[0][2])/2)
+
+
 }
 
 function updateTrailerAABB(newBody3DPos) {
@@ -301,7 +306,6 @@ function updateTrailerAABB(newBody3DPos) {
 }*/
 
 function isTruck() {
-
     // Check if RoboTruck is in truck mode
     return (
         head3DAngle === Math.PI &&
@@ -470,11 +474,14 @@ function init() {
     cameras.side = createOrthographicCamera(500, 0, -600, 0, 0, -600, -750, 5000);
     cameras.top = createOrthographicCamera(0, 500, -400, 0, 0, -400, 0, 5000);
     cameras.iso = createOrthographicCamera(1000, 500, 0, 500, 0, -500, -750, 5000);
-    cameras.persp = createPerspectiveCamera(500, 500, 750, 0, 0, 0, 0, 5000, 80);
+    cameras.persp = createPerspectiveCamera(1000, 500, 0, 500, 0, -500, -750, 5000, 45);
+    // set target for perspective camera
+    cameras.persp.lookAt(0, 0, 0);
     camera = cameras.front;
 
     // Create Axes Helper and Rotation Axes to be used
-    axesHelper = new THREE.AxesHelper(500);
+    axesHelper = new THREE.AxesHelper(1000);
+    axesHelper.visible = true;
     rAxes.x = new THREE.Vector3(1, 0, 0);
     rAxes.y = new THREE.Vector3(0, 1, 0);
     rAxes.z = new THREE.Vector3(0, 0, 1);
@@ -518,12 +525,13 @@ function animate() {
 ////////////////////////////
 
 function onResize() {
-
-    // TODO: how to keep resize information when changing camera?
+    console.log("resize")
     renderer.setSize(window.innerWidth, window.innerHeight);
     if (window.innerHeight > 0 && window.innerWidth > 0) {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
+        for (let i = 0; i < cameras.length; i++) {
+            cameras[i].aspect = window.innerWidth / window.innerHeight;
+            cameras[i].updateProjectionMatrix();
+        }
     }
 }
 
@@ -598,7 +606,7 @@ function rotateHead(speed, delta) {
         head3D.rotation.x = target;
         head3DAngle = target;
     }
-    if ((speed > 0 && head3DAngle + speed <= target) || (speed < 0 && head3DAngle + speed >= target)) {
+    if ((speed > 0 && head3DAngle + speed * delta <= target) || (speed < 0 && head3DAngle + speed * delta >= target)) {
         head3D.rotation.x -= speed * delta;
         head3DAngle += speed * delta;
     }
@@ -612,7 +620,7 @@ function moveArms(speed, delta) {
         rArm3D.position.x -= target - armsOffset;
         armsOffset = target;
     }
-    if ((speed > 0 && armsOffset + speed <= target) || (speed < 0 && armsOffset + speed >= target)) {
+    if ((speed > 0 && armsOffset + speed * delta <= target) || (speed < 0 && armsOffset + speed * delta >= target)) {
         lArm3D.position.x += speed * delta;
         rArm3D.position.x -= speed * delta;
         armsOffset += speed * delta;
@@ -620,13 +628,12 @@ function moveArms(speed, delta) {
 }
 
 function rotateThighs(speed, delta) {
-
     const target = speed > 0 ? Math.PI / 2 : 0;
     if (Math.abs(target - thighs3DAngle) < Math.abs(speed * delta)) {
         thighs3D.rotation.x = target;
         thighs3DAngle = target;
     }
-    if ((speed > 0 && thighs3DAngle + speed <= target) || (speed < 0 && thighs3DAngle + speed >= target)) {
+    if ((speed > 0 && thighs3DAngle + speed * delta <= target) || (speed < 0 && thighs3DAngle + speed * delta >= target)) {
         thighs3D.rotation.x += speed * delta;
         thighs3DAngle += speed * delta;
     }
@@ -639,7 +646,7 @@ function rotateBoots(speed, delta) {
         boots3D.rotation.x = target;
         boots3DAngle = target;
     }
-    if ((speed > 0 && boots3DAngle + speed <= target) || (speed < 0 && boots3DAngle + speed >= target)) {
+    if ((speed > 0 && boots3DAngle + speed * delta <= target) || (speed < 0 && boots3DAngle + speed * delta >= target)) {
         boots3D.rotation.x += speed * delta;
         boots3DAngle += speed * delta;
     }
