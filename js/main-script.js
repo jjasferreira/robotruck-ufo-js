@@ -18,7 +18,7 @@
     * - 'Q/A' - rotate RoboTruck's boots
     * - '←/→' - move Trailer on x-axis
     * - '↑/↓' - move Trailer on z-axis
-    * - 'Z' - reset Trailer's position and lathes rotation
+    * - 'Z' - reset Trailer's position and latches rotation
  */
 
 //////////////////////
