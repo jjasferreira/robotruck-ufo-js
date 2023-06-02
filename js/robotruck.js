@@ -25,7 +25,7 @@
 /* GLOBAL VARIABLES */
 //////////////////////
 
-let scene, renderer;
+let roboScene, renderer_robot;
 
 let previousTime = 0, currentTime = 0;
 
@@ -92,9 +92,9 @@ let latchesLocked = false, unlockingLatches = false;
 
 function createScene() {
 
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(colors.eggshell);
-    scene.fog = new THREE.FogExp2(colors.fog, 0.00025);
+    roboScene = new THREE.Scene();
+    roboScene.background = new THREE.Color(colors.eggshell);
+    roboScene.fog = new THREE.FogExp2(colors.fog, 0.00025);
 
     // Create RoboTruck, Trailer and respective bounding boxes
     createMaterials();
@@ -195,7 +195,7 @@ function createGeometry(type, parameters, material, rotAxis, parent, x = 0, y = 
 function createRoboTruck() {
 
     // Torso 3D (parent: scene; children: torso, head 3D, arms 3Ds, abdomen 3D)
-    torso3D = createObject3D(scene, 0, d.torsoH/2+d.abdomenH+d.waistH+d.wheelR/2, 0);
+    torso3D = createObject3D(roboScene, 0, d.torsoH/2+d.abdomenH+d.waistH+d.wheelR/2, 0);
     createGeometry('box', [d.torsoW, d.torsoH, d.torsoD], m.grey, null, torso3D);
     // Head 3D (parent: torso 3D; children: head, eyes, antennas)
     head3D = createObject3D(torso3D, 0, d.torsoH/2, -d.torsoD/2);
@@ -244,7 +244,7 @@ function createRoboTruck() {
 function createTrailer() {
 
     // Body 3D (parent: scene; children: body, coupler, latches 3Ds, plate 3D)
-    body3D = createObject3D(scene, 500, d.bodyH/2+d.plateH+d.chassisH+d.wheelR/2, -1250);
+    body3D = createObject3D(roboScene, 500, d.bodyH/2+d.plateH+d.chassisH+d.wheelR/2, -1250);
     createGeometry('box', [d.bodyW, d.bodyH, d.bodyD], m.salmon, null, body3D, 0, 0, 0);
     createGeometry('box', [d.couplerW, d.couplerH, d.couplerD], m.grey, null, body3D, 0, -d.couplerH/2-d.bodyH/2, -5*d.couplerD/6+d.bodyD/2);
     // Latches 3Ds (parent: body 3D; children: latches)
@@ -335,12 +335,12 @@ function updateTrailerAABB(newBody3DPos) {
         newBody3DPos.y + d.bodyH/2,
         newBody3DPos.z + d.bodyD/2
     );
-    scene.remove(trailerBoundingBox);
+    roboScene.remove(trailerBoundingBox);
     const boxGeometry = new THREE.BoxGeometry(d.bodyW + 2*d.wheelH, d.bodyH + d.plateH + d.chassisH + d.wheelR/2, d.bodyD);
     const edgesGeometry = new THREE.EdgesGeometry(boxGeometry);
     trailerBoundingBox = new THREE.LineSegments(edgesGeometry, boundingBoxesMaterial);
     trailerBoundingBox.position.set(newBody3DPos.x, newBody3DPos.y, newBody3DPos.z);
-    scene.add(trailerBoundingBox);
+    roboScene.add(trailerBoundingBox);
 }
 
 function isTruck() {
@@ -359,12 +359,12 @@ function updateRoboTruckAABB() {
         createTruckAABB();
     else
         createRobotAABB();
-    scene.remove(roboTruckBoundingBox);
+    roboScene.remove(roboTruckBoundingBox);
     const boxGeometry = new THREE.BoxGeometry(roboTruckAABB[1][0]-roboTruckAABB[0][0], roboTruckAABB[1][1]-roboTruckAABB[0][1], roboTruckAABB[1][2]-roboTruckAABB[0][2]);
     const edgesGeometry = new THREE.EdgesGeometry(boxGeometry);
     roboTruckBoundingBox = new THREE.LineSegments(edgesGeometry, boundingBoxesMaterial);
     roboTruckBoundingBox.position.set((roboTruckAABB[1][0]+roboTruckAABB[0][0])/2, (roboTruckAABB[1][1]+roboTruckAABB[0][1])/2, (roboTruckAABB[1][2]+roboTruckAABB[0][2])/2);
-    scene.add(roboTruckBoundingBox);
+    roboScene.add(roboTruckBoundingBox);
 }
 
 ////////////
@@ -487,7 +487,7 @@ function moveTrailerBehindTruck() {
 /////////////
 
 function render() {
-    renderer.render(scene, camera);
+    renderer_robot.render(roboScene, camera);
 }
 
 ////////////////////////////////
@@ -496,11 +496,11 @@ function render() {
 
 function init() {
 
-    renderer = new THREE.WebGLRenderer({
+    renderer_robot = new THREE.WebGLRenderer({
         antialias: true
     });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+    renderer_robot.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer_robot.domElement);
 
     // Create all cameras and set default camera
     cameras.front = createOrthographicCamera(0, 0, 500, 0, 0, 0, -500, 5000);
@@ -511,7 +511,7 @@ function init() {
     camera = cameras.front;
 
     // Create camera controls and disable them and their arrow keys
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls = new THREE.OrbitControls(camera, renderer_robot.domElement);
     controls.keys = {LEFT: null, UP: null, RIGHT: null, BOTTOM: null};
     controls.enabled = false;
 
@@ -550,7 +550,7 @@ function animate() {
 
 function onResize() {
     console.log('resize')
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer_robot.setSize(window.innerWidth, window.innerHeight);
     if (window.innerHeight > 0 && window.innerWidth > 0) {
         if (camera instanceof THREE.OrthographicCamera)
             updateOrthographicCamera(camera);
@@ -607,10 +607,10 @@ function onKeyDown(e) {
             break;
         case 57: // 9
             if (!isAxesHelperVisible) {
-                scene.add(axesHelper);
+                roboScene.add(axesHelper);
                 isAxesHelperVisible = true;
             } else {
-                scene.remove(axesHelper);
+                roboScene.remove(axesHelper);
                 isAxesHelperVisible = false;
             }
             break;

@@ -1,8 +1,8 @@
 // Create a scene, camera, and renderer
 let flowerScene, skyScene;
-let camera, renderer;
+let camera, renderer_textures;
 
-let currentScene = {field : true, sky : false}
+let scenes = {field : true, sky : false}
 
 // plane
 let planeMesh;
@@ -41,11 +41,11 @@ function animate() {
 }
 
 function init() {
-    renderer = new THREE.WebGLRenderer({
+    renderer_textures = new THREE.WebGLRenderer({
         antialias: true
     });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+    renderer_textures.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer_textures.domElement);
 
     //camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera = createPerspectiveCamera(0, 0, 5, 0, 0, 0, 0.1, 1000, 75)
@@ -133,21 +133,21 @@ function generateSkyTexture() {
 
 // Render function
 function render() {
-    if (currentScene.field) {
-        renderer.render(flowerScene, camera);
-    } else if (currentScene.sky) {
-        renderer.render(skyScene, camera);
+    if (scenes.field) {
+        renderer_textures.render(flowerScene, camera);
+    } else if (scenes.sky) {
+        renderer_textures.render(skyScene, camera);
     }
 }
 
 // Keyboard event listener
 function onKeyDown(event) {
     if (event.key === '1') {
-        currentScene.field = true;
-        currentScene.sky = false;
+        scenes.field = true;
+        scenes.sky = false;
     } else if (event.key === '2') {
-        currentScene.field = false;
-        currentScene.sky = true;
+        scenes.field = false;
+        scenes.sky = true;
     }
 }
 
