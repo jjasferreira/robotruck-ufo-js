@@ -63,7 +63,7 @@ const d = {
 function createScene() {
 
     ufoScene = new THREE.Scene();
-    //ufoScene.fog = new THREE.FogExp2(0x656597, 0.00025);
+    ufoScene.fog = new THREE.FogExp2(0x656597, 0.00005);
 
     createAmbientLight(0xffffff, 1);
 
@@ -110,12 +110,12 @@ function createMaterials() {
 
 
 function createTerrain() {
-    const groundGeometry = new THREE.PlaneGeometry(10000, 10000, 100, 100);
+    const groundGeometry = new THREE.PlaneGeometry(25000, 25000, 100, 100);
 
     //create a canvas element and add the texture at images/texture.png
 
     let image = new Image();
-    image.src = "../images/minecraft.png";
+    image.src = "../images/fieldTexture.png";
     image.onload = function () {
         const height = image.height;
         const width = image.width;
@@ -145,7 +145,7 @@ function createTerrain() {
         const groundMaterial = new THREE.MeshPhongMaterial({
             color: 0x656597,
             displacementMap: disMap,
-            displacementScale: 200,
+            displacementScale: 500,
             side: THREE.DoubleSide,
             map: groundTexture
         });
@@ -163,7 +163,7 @@ function createTerrain() {
 
 function createSkydome() {
     // must be double-sided in order to see the inside of the skydome
-    const skydomeGeometry = new THREE.SphereGeometry(10000, 32, 32);
+    const skydomeGeometry = new THREE.SphereGeometry(12500, 64, 64);
     // get the texture from images/skytexture.jpg
     const skydomeTexture = new THREE.TextureLoader().setPath("../images").load("/skytexture.png");
     const skydomeMaterial = new THREE.MeshBasicMaterial({ map: skydomeTexture, side: THREE.DoubleSide });
@@ -258,6 +258,18 @@ function createMoon() {
     // Moon 3D (parent: scene; children: moon)
     moon3D = createObject3D(ufoScene, 5000, 5000, 5000);
     createGeometry('sph', [d.moonR], m.lightyellow, moon3D, 0, 0, 0);
+    // add directional lightyellow light
+    let moonLight = new THREE.DirectionalLight(m.lightyellow, 1);
+    moonLight.position.set(0, 0, 0);
+    moon3D.add(moonLight);
+    // directional lightyellow helper
+    let moonLightHelper = new THREE.DirectionalLightHelper(moonLight, 1000);
+    moon3D.add(moonLightHelper);
+    // light direction is slightly tilted
+    moonLight.target.position.set(0, 0, 0);
+    moonLight.castShadow = true;
+    // TODO
+
 }
 
 //////////////////////
