@@ -1,4 +1,4 @@
-'use strict';   // Applies to all of script
+'use strict';   // Applies to all script
 
 /*
     *  RoboTruck - key bindings:
@@ -25,7 +25,7 @@
 /* GLOBAL VARIABLES */
 //////////////////////
 
-let roboScene, renderer_robot;
+let rtScene, rtRenderer;
 
 let previousTime = 0, currentTime = 0;
 
@@ -86,15 +86,15 @@ let roboTruckBoundingBox, trailerBoundingBox;
 let coupling = false, trailerBehindTruck = false;
 let latchesLocked = false, unlockingLatches = false;
 
-/////////////////////
-/* CREATE SCENE(S) */
-/////////////////////
+//////////////////
+/* CREATE SCENE */
+//////////////////
 
 function createScene() {
 
-    roboScene = new THREE.Scene();
-    roboScene.background = new THREE.Color(colors.eggshell);
-    roboScene.fog = new THREE.FogExp2(colors.fog, 0.00025);
+    rtScene = new THREE.Scene();
+    rtScene.background = new THREE.Color(colors.eggshell);
+    rtScene.fog = new THREE.FogExp2(colors.fog, 0.00025);
 
     // Create RoboTruck, Trailer and respective bounding boxes
     createMaterials();
@@ -103,61 +103,9 @@ function createScene() {
     createTrailer();
 }
 
-//////////////////////
-/* CREATE CAMERA(S) */
-//////////////////////
-
-function createOrthographicCamera(x, y, z, lx, ly, lz, near, far) {
-
-    const width = 5*window.innerWidth/6;
-    const height = 5*window.innerHeight/6;
-    const camera = new THREE.OrthographicCamera(-width, width, height, -height, near, far);
-    camera.position.set(x, y, z);
-    camera.lookAt(lx, ly, lz);
-    return camera;
-}
-
-function updateOrthographicCamera(camera) {
-
-    const width = 3*window.innerWidth/4;
-    const height = 3*window.innerHeight/4;
-    camera.left = -width;
-    camera.right = width;
-    camera.top = height;
-    camera.bottom = -height;
-    camera.updateProjectionMatrix();
-}
-
-function createPerspectiveCamera(x, y, z, lx, ly, lz, near, far, fov) {
-
-    const aspect = window.innerWidth / window.innerHeight;
-    const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-    camera.position.set(x, y, z);
-    camera.lookAt(lx, ly, lz);
-    return camera;
-}
-
-function updatePerspectiveCamera(camera) {
-
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-}
-
-/////////////////////
-/* CREATE LIGHT(S) */
-/////////////////////
-
-////////////////////////
-/* CREATE OBJECT3D(S) */
-////////////////////////
-
-function createObject3D(parent, x = 0, y = 0, z = 0) {
-
-    const obj3D = new THREE.Object3D();
-    obj3D.position.set(x, y, z);
-    parent.add(obj3D);
-    return obj3D;
-}
+///////////////////////
+/* CREATE COMPONENTS */
+///////////////////////
 
 function createMaterials() {
 
@@ -169,104 +117,81 @@ function createMaterials() {
     boundingBoxesMaterial = new THREE.LineBasicMaterial({ color: colors.red, visible: false });
 }
 
-function createGeometry(type, parameters, material, rotAxis, parent, x = 0, y = 0, z = 0) {
-
-    // Create geometry based on the type
-    let geometry;
-    if (type === 'box')
-        geometry = new THREE.BoxGeometry(...parameters);
-    else if (type === 'cyl')
-        geometry = new THREE.CylinderGeometry(...parameters, 16);
-    // Create mesh with the specified material
-    const mesh = new THREE.Mesh(geometry, material);
-    // Create edges and add them to the mesh and to the edges array
-    const edgesGeometry = new THREE.EdgesGeometry(geometry);
-    const edges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
-    mesh.add(edges);
-    // Apply rotation if specified
-    if (rotAxis !== null)
-        mesh.rotateOnAxis(rotAxis, Math.PI / 2);
-    // Set position and add to parent
-    mesh.position.set(x, y, z);
-    parent.add(mesh);
-    return mesh;
-}
-
 function createRoboTruck() {
 
     // Torso 3D (parent: scene; children: torso, head 3D, arms 3Ds, abdomen 3D)
-    torso3D = createObject3D(roboScene, 0, d.torsoH/2+d.abdomenH+d.waistH+d.wheelR/2, 0);
-    createGeometry('box', [d.torsoW, d.torsoH, d.torsoD], m.grey, null, torso3D);
+    torso3D = createObject3D(rtScene, 0, d.torsoH/2+d.abdomenH+d.waistH+d.wheelR/2, 0);
+    createGeometry('box', [d.torsoW, d.torsoH, d.torsoD], m.grey, torso3D);
     // Head 3D (parent: torso 3D; children: head, eyes, antennas)
     head3D = createObject3D(torso3D, 0, d.torsoH/2, -d.torsoD/2);
-    createGeometry('box', [d.headW, d.headH, d.headD], m.beige, null, head3D, 0, d.headH/2, d.headD/2);
-    createGeometry('box', [d.eyeW, d.eyeH, d.eyeD], m.white, null, head3D, -d.headW/4, 3*d.headH/5, d.headD);
-    createGeometry('box', [d.eyeW, d.eyeH, d.eyeD], m.white, null, head3D, d.headW/4, 3*d.headH/5, d.headD);
-    createGeometry('box', [d.antennaW, d.antennaH, d.antennaD], m.red, null, head3D, -d.headW/4, d.headH, 0);
-    createGeometry('box', [d.antennaW, d.antennaH, d.antennaD], m.red, null, head3D, d.headW/4, d.headH, 0);
+    createGeometry('box', [d.headW, d.headH, d.headD], m.beige, head3D, 0, d.headH/2, d.headD/2);
+    createGeometry('box', [d.eyeW, d.eyeH, d.eyeD], m.white, head3D, -d.headW/4, 3*d.headH/5, d.headD);
+    createGeometry('box', [d.eyeW, d.eyeH, d.eyeD], m.white, head3D, d.headW/4, 3*d.headH/5, d.headD);
+    createGeometry('box', [d.antennaW, d.antennaH, d.antennaD], m.red, head3D, -d.headW/4, d.headH, 0);
+    createGeometry('box', [d.antennaW, d.antennaH, d.antennaD], m.red, head3D, d.headW/4, d.headH, 0);
     // Arms 3Ds (parent: torso 3D; children: upper arms, exhaust pipes, lower arms)
     lArm3D = createObject3D(torso3D, -d.torsoW/2, 0, -d.torsoD/2);
     rArm3D = createObject3D(torso3D, d.torsoW/2, 0, -d.torsoD/2);
-    createGeometry('box', [d.uppArmW, d.uppArmH, d.uppArmD], m.darkgreen, null, lArm3D, -d.uppArmW/2, 0, -d.uppArmD/2);
-    createGeometry('box', [d.uppArmW, d.uppArmH, d.uppArmD], m.darkgreen, null, rArm3D, d.uppArmW/2, 0, -d.uppArmD/2);
-    createGeometry('cyl', [d.pipeR, d.pipeR, d.pipeH], m.grey, null, lArm3D, -d.pipeR-d.uppArmW, 3*d.uppArmH/8, d.pipeR-d.uppArmD);
-    createGeometry('cyl', [d.pipeR, d.pipeR, d.pipeH], m.grey, null, rArm3D, d.pipeR+d.uppArmW, 3*d.uppArmH/8, d.pipeR-d.uppArmD);
-    createGeometry('box', [d.lowArmW, d.lowArmH, d.lowArmD], m.amber, null, lArm3D, -d.uppArmW/2, -d.lowArmH/2-d.uppArmH/2, d.lowArmD/2-d.uppArmD);
-    createGeometry('box', [d.lowArmW, d.lowArmH, d.lowArmD], m.amber, null, rArm3D, d.uppArmW/2, -d.lowArmH/2-d.uppArmH/2, d.lowArmD/2-d.uppArmD);
+    createGeometry('box', [d.uppArmW, d.uppArmH, d.uppArmD], m.darkgreen, lArm3D, -d.uppArmW/2, 0, -d.uppArmD/2);
+    createGeometry('box', [d.uppArmW, d.uppArmH, d.uppArmD], m.darkgreen, rArm3D, d.uppArmW/2, 0, -d.uppArmD/2);
+    createGeometry('cyl', [d.pipeR, d.pipeR, d.pipeH], m.grey, lArm3D, -d.pipeR-d.uppArmW, 3*d.uppArmH/8, d.pipeR-d.uppArmD);
+    createGeometry('cyl', [d.pipeR, d.pipeR, d.pipeH], m.grey, rArm3D, d.pipeR+d.uppArmW, 3*d.uppArmH/8, d.pipeR-d.uppArmD);
+    createGeometry('box', [d.lowArmW, d.lowArmH, d.lowArmD], m.amber, lArm3D, -d.uppArmW/2, -d.lowArmH/2-d.uppArmH/2, d.lowArmD/2-d.uppArmD);
+    createGeometry('box', [d.lowArmW, d.lowArmH, d.lowArmD], m.amber, rArm3D, d.uppArmW/2, -d.lowArmH/2-d.uppArmH/2, d.lowArmD/2-d.uppArmD);
     // Abdomen 3D (parent: torso 3D; children: abdomen, waist 3D)
     abdomen3D = createObject3D(torso3D, 0, -d.torsoH/2, 0);
-    createGeometry('box', [d.abdomenW, d.abdomenH, d.abdomenD], m.darkgreen, null, abdomen3D, 0, -d.abdomenH/2, 0);
+    createGeometry('box', [d.abdomenW, d.abdomenH, d.abdomenD], m.darkgreen, abdomen3D, 0, -d.abdomenH/2, 0);
     // Waist 3D (parent: abdomen 3D; children: waist, front wheels, thighs 3D)
     waist3D = createObject3D(abdomen3D, 0, -d.abdomenH, d.abdomenD/8);
-    createGeometry('box', [d.waistW, d.waistH, d.waistD], m.grey, null, waist3D, 0, -d.waistH/2, 0);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, rAxes.z, waist3D, -d.wheelH/2-d.waistW/2, -3*d.waistH/4, 0);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, rAxes.z, waist3D, d.wheelH/2+d.waistW/2, -3*d.waistH/4, 0);
+    createGeometry('box', [d.waistW, d.waistH, d.waistD], m.grey, waist3D, 0, -d.waistH/2, 0);
+    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, waist3D, -d.wheelH/2-d.waistW/2, -3*d.waistH/4, 0, rAxes.z, Math.PI/2);
+    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, waist3D, d.wheelH/2+d.waistW/2, -3*d.waistH/4, 0, rAxes.z, Math.PI/2);
     // Thighs 3D (parent: waist 3D; children: thighs, legs 3D)
     thighs3D = createObject3D(waist3D, 0, -d.waistH, -d.waistD/2);
-    createGeometry('box', [d.thighW, d.thighH, d.thighD], m.lightblue, null, thighs3D, -d.waistW/3, -d.thighH/2, -d.thighD/2);
-    createGeometry('box', [d.thighW, d.thighH, d.thighD], m.lightblue, null, thighs3D, d.waistW/3, -d.thighH/2, -d.thighD/2);
+    createGeometry('box', [d.thighW, d.thighH, d.thighD], m.lightblue, thighs3D, -d.waistW/3, -d.thighH/2, -d.thighD/2);
+    createGeometry('box', [d.thighW, d.thighH, d.thighD], m.lightblue, thighs3D, d.waistW/3, -d.thighH/2, -d.thighD/2);
     // Legs 3D (parents: thighs 3D; children: legs, back wheels, trailer socket, boots 3D)
     legs3D = createObject3D(thighs3D, 0, -d.thighH, -d.thighD);
-    createGeometry('box', [d.legW, d.legH, d.legD], m.darkblue, null, legs3D, -d.waistW/3, -d.legH/2, 0);
-    createGeometry('box', [d.legW, d.legH, d.legD], m.darkblue, null, legs3D, d.waistW/3, -d.legH/2, 0);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, rAxes.z, legs3D, -d.waistW/3-d.wheelH/2-d.legW/2, -7*d.legH/16, d.legD/4);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, rAxes.z, legs3D, -d.waistW/3-d.wheelH/2-d.legW/2, -13*d.legH/16, d.legD/4);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, rAxes.z, legs3D, d.waistW/3+d.wheelH/2+d.legW/2, -7*d.legH/16, d.legD/4);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, rAxes.z, legs3D, d.waistW/3+d.wheelH/2+d.legW/2, -13*d.legH/16, d.legD/4);
-    createGeometry('box', [d.socketW, d.socketH, d.socketD], m.lime, null, legs3D, -d.waistW/3+d.legW/4, -5*d.legH/16, -3*d.socketD/2);
-    createGeometry('box', [d.socketW, d.socketH, d.socketD], m.lime, null, legs3D, d.waistW/3-d.legW/4, -5*d.legH/16, -3*d.socketD/2);
+    createGeometry('box', [d.legW, d.legH, d.legD], m.darkblue, legs3D, -d.waistW/3, -d.legH/2, 0);
+    createGeometry('box', [d.legW, d.legH, d.legD], m.darkblue, legs3D, d.waistW/3, -d.legH/2, 0);
+    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, legs3D, -d.waistW/3-d.wheelH/2-d.legW/2, -7*d.legH/16, d.legD/4, rAxes.z, Math.PI/2);
+    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, legs3D, -d.waistW/3-d.wheelH/2-d.legW/2, -13*d.legH/16, d.legD/4, rAxes.z, Math.PI/2);
+    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, legs3D, d.waistW/3+d.wheelH/2+d.legW/2, -7*d.legH/16, d.legD/4, rAxes.z, Math.PI/2);
+    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, legs3D, d.waistW/3+d.wheelH/2+d.legW/2, -13*d.legH/16, d.legD/4, rAxes.z, Math.PI/2);
+    createGeometry('box', [d.socketW, d.socketH, d.socketD], m.lime, legs3D, -d.waistW/3+d.legW/4, -5*d.legH/16, -3*d.socketD/2);
+    createGeometry('box', [d.socketW, d.socketH, d.socketD], m.lime, legs3D, d.waistW/3-d.legW/4, -5*d.legH/16, -3*d.socketD/2);
     // Boots 3D (parents: legs 3D; children: boots)
     boots3D = createObject3D(legs3D, 0, -d.legH, d.legD/2);
-    createGeometry('box', [d.bootW, d.bootH, d.bootD], m.grey, null, boots3D, -d.waistW/3, -d.bootH/2, d.bootD/2);
-    createGeometry('box', [d.bootW, d.bootH, d.bootD], m.grey, null, boots3D, d.waistW/3, -d.bootH/2, d.bootD/2);
+    createGeometry('box', [d.bootW, d.bootH, d.bootD], m.grey, boots3D, -d.waistW/3, -d.bootH/2, d.bootD/2);
+    createGeometry('box', [d.bootW, d.bootH, d.bootD], m.grey, boots3D, d.waistW/3, -d.bootH/2, d.bootD/2);
 }
 
 function createTrailer() {
 
     // Body 3D (parent: scene; children: body, coupler, latches 3Ds, plate 3D)
-    body3D = createObject3D(roboScene, 500, d.bodyH/2+d.plateH+d.chassisH+d.wheelR/2, -1250);
-    createGeometry('box', [d.bodyW, d.bodyH, d.bodyD], m.salmon, null, body3D, 0, 0, 0);
-    createGeometry('box', [d.couplerW, d.couplerH, d.couplerD], m.grey, null, body3D, 0, -d.couplerH/2-d.bodyH/2, -5*d.couplerD/6+d.bodyD/2);
+    body3D = createObject3D(rtScene, 500, d.bodyH/2+d.plateH+d.chassisH+d.wheelR/2, -1250);
+    createGeometry('box', [d.bodyW, d.bodyH, d.bodyD], m.salmon, body3D, 0, 0, 0);
+    createGeometry('box', [d.couplerW, d.couplerH, d.couplerD], m.grey, body3D, 0, -d.couplerH/2-d.bodyH/2, -5*d.couplerD/6+d.bodyD/2);
     // Latches 3Ds (parent: body 3D; children: latches)
     lLatch3D = createObject3D(body3D, -d.latchW, -d.latchH/2-d.bodyH/2, -d.latchD+d.bodyD/2);
     rLatch3D = createObject3D(body3D, d.latchW, -d.latchH/2-d.bodyH/2, -d.latchD+d.bodyD/2);
-    createGeometry('box', [d.latchW, d.latchH, d.latchD], m.black, null, lLatch3D, d.latchW/2, 0, d.latchD/2);
-    createGeometry('box', [d.latchW, d.latchH, d.latchD], m.black, null, rLatch3D, -d.latchW/2, 0, d.latchD/2);
+    createGeometry('box', [d.latchW, d.latchH, d.latchD], m.black, lLatch3D, d.latchW/2, 0, d.latchD/2);
+    createGeometry('box', [d.latchW, d.latchH, d.latchD], m.black, rLatch3D, -d.latchW/2, 0, d.latchD/2);
     // Plate 3D (parent: body 3D; children: plate, chassis 3D)
     plate3D = createObject3D(body3D, 0, -d.bodyH/2, -d.bodyD/2);
-    createGeometry('box', [d.plateW, d.plateH, d.plateD], m.grey, null, plate3D, 0, -d.plateH/2, d.plateD/2);
+    createGeometry('box', [d.plateW, d.plateH, d.plateD], m.grey,  plate3D, 0, -d.plateH/2, d.plateD/2);
     // Chassis 3D (parent: plate 3D; children: chassis, wheels)
     chassis3D = createObject3D(plate3D, 0, -d.plateH, 0);
-    createGeometry('box', [d.chassisW, d.chassisH, d.chassisD], m.black, null, chassis3D, 0, -d.chassisH/2, d.chassisD/2);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, rAxes.z, chassis3D, -d.wheelH/2-d.chassisW/2, -3*d.chassisH/4, 3*d.chassisD/10);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, rAxes.z, chassis3D, d.wheelH/2+d.chassisW/2, -3*d.chassisH/4, 3*d.chassisD/10);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, rAxes.z, chassis3D, -d.wheelH/2-d.chassisW/2, -3*d.chassisH/4, 7*d.chassisD/10);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, rAxes.z, chassis3D, d.wheelH/2+d.chassisW/2, -3*d.chassisH/4, 7*d.chassisD/10);
+    createGeometry('box', [d.chassisW, d.chassisH, d.chassisD], m.black, chassis3D, 0, -d.chassisH/2, d.chassisD/2);
+    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, chassis3D, -d.wheelH/2-d.chassisW/2, -3*d.chassisH/4, 3*d.chassisD/10, rAxes.z, Math.PI/2);
+    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, chassis3D, d.wheelH/2+d.chassisW/2, -3*d.chassisH/4, 3*d.chassisD/10, rAxes.z, Math.PI/2);
+    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, chassis3D, -d.wheelH/2-d.chassisW/2, -3*d.chassisH/4, 7*d.chassisD/10, rAxes.z, Math.PI/2);
+    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, chassis3D, d.wheelH/2+d.chassisW/2, -3*d.chassisH/4, 7*d.chassisD/10, rAxes.z, Math.PI/2);
 }
 
-/////////////////////////////////////////
+////////////////////////////////////////
 /* COLLISION AND BOUNDARIES FUNCTIONS */
-/////////////////////////////////////////
+////////////////////////////////////////
 
 function checkCollisions() {
 
@@ -335,12 +260,12 @@ function updateTrailerAABB(newBody3DPos) {
         newBody3DPos.y + d.bodyH/2,
         newBody3DPos.z + d.bodyD/2
     );
-    roboScene.remove(trailerBoundingBox);
+    rtScene.remove(trailerBoundingBox);
     const boxGeometry = new THREE.BoxGeometry(d.bodyW + 2*d.wheelH, d.bodyH + d.plateH + d.chassisH + d.wheelR/2, d.bodyD);
     const edgesGeometry = new THREE.EdgesGeometry(boxGeometry);
     trailerBoundingBox = new THREE.LineSegments(edgesGeometry, boundingBoxesMaterial);
     trailerBoundingBox.position.set(newBody3DPos.x, newBody3DPos.y, newBody3DPos.z);
-    roboScene.add(trailerBoundingBox);
+    rtScene.add(trailerBoundingBox);
 }
 
 function isTruck() {
@@ -359,12 +284,12 @@ function updateRoboTruckAABB() {
         createTruckAABB();
     else
         createRobotAABB();
-    roboScene.remove(roboTruckBoundingBox);
+    rtScene.remove(roboTruckBoundingBox);
     const boxGeometry = new THREE.BoxGeometry(roboTruckAABB[1][0]-roboTruckAABB[0][0], roboTruckAABB[1][1]-roboTruckAABB[0][1], roboTruckAABB[1][2]-roboTruckAABB[0][2]);
     const edgesGeometry = new THREE.EdgesGeometry(boxGeometry);
     roboTruckBoundingBox = new THREE.LineSegments(edgesGeometry, boundingBoxesMaterial);
     roboTruckBoundingBox.position.set((roboTruckAABB[1][0]+roboTruckAABB[0][0])/2, (roboTruckAABB[1][1]+roboTruckAABB[0][1])/2, (roboTruckAABB[1][2]+roboTruckAABB[0][2])/2);
-    roboScene.add(roboTruckBoundingBox);
+    rtScene.add(roboTruckBoundingBox);
 }
 
 ////////////
@@ -487,7 +412,7 @@ function moveTrailerBehindTruck() {
 /////////////
 
 function render() {
-    renderer_robot.render(roboScene, camera);
+    rtRenderer.render(rtScene, camera);
 }
 
 ////////////////////////////////
@@ -496,11 +421,11 @@ function render() {
 
 function init() {
 
-    renderer_robot = new THREE.WebGLRenderer({
+    rtRenderer = new THREE.WebGLRenderer({
         antialias: true
     });
-    renderer_robot.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer_robot.domElement);
+    rtRenderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(rtRenderer.domElement);
 
     // Create all cameras and set default camera
     cameras.front = createOrthographicCamera(0, 0, 500, 0, 0, 0, -500, 5000);
@@ -511,7 +436,7 @@ function init() {
     camera = cameras.front;
 
     // Create camera controls and disable them and their arrow keys
-    controls = new THREE.OrbitControls(camera, renderer_robot.domElement);
+    controls = new THREE.OrbitControls(camera, rtRenderer.domElement);
     controls.keys = {LEFT: null, UP: null, RIGHT: null, BOTTOM: null};
     controls.enabled = false;
 
@@ -549,8 +474,7 @@ function animate() {
 ////////////////////////////
 
 function onResize() {
-    console.log('resize')
-    renderer_robot.setSize(window.innerWidth, window.innerHeight);
+    rtRenderer.setSize(window.innerWidth, window.innerHeight);
     if (window.innerHeight > 0 && window.innerWidth > 0) {
         if (camera instanceof THREE.OrthographicCamera)
             updateOrthographicCamera(camera);
@@ -607,10 +531,10 @@ function onKeyDown(e) {
             break;
         case 57: // 9
             if (!isAxesHelperVisible) {
-                roboScene.add(axesHelper);
+                rtScene.add(axesHelper);
                 isAxesHelperVisible = true;
             } else {
-                roboScene.remove(axesHelper);
+                rtScene.remove(axesHelper);
                 isAxesHelperVisible = false;
             }
             break;

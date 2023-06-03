@@ -105,12 +105,15 @@ function generateSkyTexture() {
     let ctx = canvas.getContext('2d');
 
     // Background gradient
-    let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, '#06068a'); // Dark-blue
+    /*let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#04048a'); // Dark-blue
     gradient.addColorStop(1, '#4b0082'); // Dark-violet
     ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);*/
 
+    // set background to just dark blue
+    ctx.fillStyle = '#06068a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
     // Stars
     ctx.fillStyle = '#ffffff'; // White
     for (let i = 0; i < 200; i++) {
@@ -149,23 +152,6 @@ function onKeyDown(event) {
         scenes.field = false;
         scenes.sky = true;
     }
-}
-
-function createPerspectiveCamera(x, y, z, lx, ly, lz, near, far, fov) {
-    const aspect = window.innerWidth / window.innerHeight;
-    const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-    camera.position.set(x, y, z);
-    camera.lookAt(lx, ly, lz);
-    return camera;
-}
-
-function createOrthographicCamera(x, y, z, lx, ly, lz, near, far) {
-    const width = 5 * window.innerWidth/6;
-    const height = 5 * window.innerHeight/6;
-    const camera = new THREE.OrthographicCamera(-width, width, height, -height, near, far);
-    camera.position.set(x, y, z);
-    camera.lookAt(lx, ly, lz);
-    return camera;
 }
 
 function exportTextures() {

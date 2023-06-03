@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset=”utf-8”>
+        <title>RoboTruck</title>
+        <link rel="stylesheet" href="css/style.css">
+        <script src="js/three.min.js"></script> <!-- three.min.js version 0.140.2 -->
+        <script src="js/dat.gui.js"></script>
+        <script src="js/Stats.js"></script>
+        <script src="js/OrbitControls.js"></script>
+        <script src="js/VRButton.js"></script>
+        <script src="js/robotruck.js"></script>
+        <script src="js/functions.js"></script>
+    </head>
+    <body>
+        <button id="goBackButton">Go Back</button>
+        <script>
+            init();
+            animate();
+        </script>
+        <script>
+            document.getElementById('goBackButton').addEventListener('click', function() {
+                // Redirect to the index.html or the desired page
+                window.location.href = 'index.html';
+            });
+        </script>
+    </body>
+</html>
