@@ -154,9 +154,8 @@ function createTerrain() {
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = -0.5;
 
-        ground.receiveShadow = true;
-        ground.castShadow = true;
 
+        ground.receiveShadow = true;
         ufoScene.add(ground);
     }
 }
@@ -179,8 +178,19 @@ function createFlyingSaucer() {
     createGeometry('sph', [d.bodyRadius / 2], glassMaterial, ufoBody3D, 0, 100, 0);
     ufoBauble3D = createObject3D(ufoBody3D, 0, 0, 0);
     //place the baubles radially in increments of 30 degrees
+    let baubleMaterial = new THREE.MeshBasicMaterial({ color: colors.lightyellow, wireframe: false, transparent: true, opacity: 0.5 });
     for (let i = 0; i < 12; i++) {
-        createGeometry('sph', [d.bodyRadius / 10], m.lightyellow, ufoBauble3D, d.bodyRadius * 0.8 * Math.sin(i * Math.PI / 6), -140, d.bodyRadius * 0.8 * Math.cos(i * Math.PI / 6));
+        createGeometry('sph', [d.bodyRadius / 10], baubleMaterial, ufoBauble3D, d.bodyRadius * 0.8 * Math.sin(i * Math.PI / 6), -140, d.bodyRadius * 0.8 * Math.cos(i * Math.PI / 6));
+        //add point light to each bauble
+        let pointLight = new THREE.PointLight(colors.lightyellow, 1, 1000);
+        pointLight.intensity = 5;
+        pointLight.position.set(d.bodyRadius * 0.8 * Math.sin(i * Math.PI / 6), -200, d.bodyRadius * 0.8 * Math.cos(i * Math.PI / 6));
+        //add a lens flare to each bauble
+        let textureLoader = new THREE.TextureLoader();
+        let textureFlare0 = textureLoader.load("../images/cat.png");
+        let lensFlare = new THREE.LensFlare(textureFlare0, 100, 0.0, THREE.AdditiveBlending, colors.lightyellow);
+        pointLight.add(lensFlare);
+        ufoBauble3D.add(pointLight);
     }
     ufoQuantumPhotonicResonator3D = createObject3D(ufoBody3D, 0, 0, 0);
     createGeometry('cyl', [d.bodyRadius / 10, d.bodyRadius / 10, d.bodyRadius / 2], m.goldenyellow, ufoQuantumPhotonicResonator3D, 0, -200, 0);
@@ -192,20 +202,26 @@ function createFlyingSaucer() {
     let catMaterial = new THREE.MeshBasicMaterial({ map: catTexture, wireframe: false });
     createGeometry('sph', [d.bodyRadius / 10], catMaterial, ufoBody3D, 0, 400, 0);
 
+    // create light target that is straight below the ufo relative to its position
+    let lightTarget = createObject3D(ufoBody3D, 0, -1000, 0);
+
     // add spotlight to quantum photonic resonator pointing down
     let spotLight = new THREE.SpotLight(colors.white, 1);
     spotLight.position.set(0, -400, 0);
-	spotLight.intensity = 10;
-    spotLight.penumbra = 0.5;
+    spotLight.angle = Math.PI / 4;
+	spotLight.intensity = 3;
+    spotLight.penumbra = 0.1;
     spotLight.castShadow = true;
+    // point down
     //radius of the light cone
     spotLight.distance = 3000;
-    //pointing straight down
-    spotLight.angle = Math.PI;
-    spotLight.shadow.mapSize.width = 10240;
-    spotLight.shadow.mapSize.height = 10240;
-    spotLight.shadow.camera.near = 1;
-    spotLight.shadow.camera.far = 30000;
+    spotLight.target = lightTarget;
+    spotLight.target.updateMatrixWorld();
+
+    let lightHelper = new THREE.SpotLightHelper( spotLight );
+    lightHelper.visible = true;
+    ufoScene.add( lightHelper );
+
     ufoBody3D.add(spotLight);
 
     // create sphere at the same position as the spotlight
@@ -222,8 +238,6 @@ function createCorkTree(x, y, z, s) {
 
     // Trunk 3D (parent: scene; children: lower trunk, upper trunk, trunk crown 3D, branch 3D)
     trunk3D = createObject3D(ufoScene, x, y, z);
-    trunk3D.receiveShadow = true;
-    trunk3D.castShadow = true;
     createGeometry('cyl', [s*d.lowTrunkTopR, s*d.lowTrunkBotR, s*d.lowTrunkH], m.darkorange, trunk3D, 0, s*d.lowTrunkH/2, 0);
     createGeometry('cyl', [s*d.uppTrunkTopR, s*d.uppTrunkBotR, s*d.uppTrunkH], m.bistre, trunk3D, 0, s*(d.lowTrunkH+d.uppTrunkH/2), 0);
     // Trunk Crown 3D (parent: trunk 3D; children: trunk crown)
@@ -236,6 +250,10 @@ function createCorkTree(x, y, z, s) {
     // Branch Crown 3D (parent: branch 3D; children: branch crown)
     branchCrown3D = createObject3D(branch3D, 0, s*(d.lowBranchH+d.uppBranchH), 0);
     createGeometry('ell', [s*d.branchCrownR, 1, 0.5, 1], m.darkgreen, branchCrown3D, 0, s*d.branchCrownR/4, 0);
+    trunk3D.castShadow = true;
+    trunkCrown3D.castShadow = true;
+    branch3D.castShadow = true;
+    branchCrown3D.castShadow = true;
 
     // Object3D's Final Rotations
     trunk3D.rotateOnWorldAxis(rAxes.y, getRandomAngle(0, 2*Math.PI));
@@ -331,7 +349,10 @@ function init() {
 
     ufoRenderer = new THREE.WebGLRenderer({ antialias: true });
     ufoRenderer.setSize(window.innerWidth, window.innerHeight);
+    ufoRenderer.setPixelRatio( window.devicePixelRatio );
     ufoRenderer.setClearColor(0x656597, 1);
+    ufoRenderer.shadowMap.enabled = true;
+    ufoRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(ufoRenderer.domElement);
 
     camera = createPerspectiveCamera(750, 500, 500, 0, 0, 0, 1, 50000, 70);
