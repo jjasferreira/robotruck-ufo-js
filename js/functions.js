@@ -39,16 +39,23 @@ function updatePerspectiveCamera(camera) {
     camera.updateProjectionMatrix();
 }
 
-function createStereoCamera(eyeSeparation) {
+function createStereoCamera(sep, near, far, fov) {
 
+    const aspect = window.innerWidth / window.innerHeight;
     const camera = new THREE.StereoCamera();
-    camera.eyeSep = eyeSeparation;
+    camera.eyeSep = sep;
+    camera.cameraL = new THREE.PerspectiveCamera(fov, aspect, near, far);
+    camera.cameraR = new THREE.PerspectiveCamera(fov, aspect, near, far);
     return camera;
 }
 
 function updateStereoCamera(camera) {
 
-        camera.update(camera.cameraL, camera.cameraR);
+    const aspect = window.innerWidth/2 / window.innerHeight;
+    camera.cameraL.aspect = aspect;
+    camera.cameraR.aspect = aspect;
+    camera.cameraL.updateProjectionMatrix();
+    camera.cameraR.updateProjectionMatrix();
 }
 
 ////////////////////////////////////
