@@ -77,5 +77,8 @@ function createGeometry(type, parameters, material, parent, x = 0, y = 0, z = 0,
     // Set position and add to parent
     mesh.position.set(x, y, z);
     parent.add(mesh);
+    // Add ability to cast and receive shadow
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
     return mesh;
 }

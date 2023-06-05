@@ -164,9 +164,11 @@ function render() {
 // Keyboard event listener
 function onKeyDown(event) {
     if (event.key === '1') {
+        createFlowerScene();
         scenes.field = true;
         scenes.sky = false;
     } else if (event.key === '2') {
+        createSkyScene();
         scenes.field = false;
         scenes.sky = true;
     }
@@ -179,6 +181,6 @@ function exportTexture(canvas, filename) {
     canvas.toBlob(function(blob) {
       let url = URL.createObjectURL(blob);
       downloadLink.setAttribute('href', url);
-      downloadLink.click();
+      //downloadLink.click();
     });
 }

@@ -36,7 +36,8 @@ let isAxesHelperVisible = false;
 let rAxes = {};
 
 // UFO's Object3Ds
-let ufoBody3D, ufoCockpit3D, ufoBauble3D, ufoQuantumPhotonicResonator3D;
+let ufoBody3D, ufoCockpit3D, ufoBauble3D, ufoQuantumPhotonicResonator3D, spotLight;
+let pointlights = [];
 
 let movementSpeed = 10;
 let rotationSpeed = 0.04;
@@ -56,6 +57,9 @@ const d = {
     moonR: 200
 };
 
+// UFO's and Moon's lights
+let moonLight;
+
 //////////////////
 /* CREATE SCENE */
 //////////////////
@@ -65,9 +69,9 @@ function createScene() {
     ufoScene = new THREE.Scene();
     ufoScene.fog = new THREE.FogExp2(0x656597, 0.00005);
 
-    createAmbientLight(0xffffff, 1);
+    createAmbientLight(0xffffff, 0.1);
 
-    createMaterials();
+    createMaterials("lambert");
     createTerrain();
     createFlyingSaucer();
     createCorkTree(500, 0, -500, 1);
@@ -83,7 +87,6 @@ function createScene() {
 /* CREATE LIGHT(S) */
 /////////////////////
 
-// TODO: remove function, it is just so that we can see what is rendered
 function createAmbientLight(color, intensity) {
 
     const ambientLight = new THREE.AmbientLight(color, intensity);
@@ -95,15 +98,38 @@ function createAmbientLight(color, intensity) {
 /* CREATE COMPONENTS */
 ///////////////////////
 
-function createMaterials() {
+function createMaterials(type) {
+    // type can be lambert, phong or cartoon
+
+    switch (type) {
+        case "lambert":
+            for (const [name, color] of Object.entries(colors)) {
+                m[name] = new THREE.MeshLambertMaterial({ color: color, wireframe: false });
+            }
+            m.cockpitMaterial = new THREE.MeshLambertMaterial({ color: colors.lightblue, wireframe: false, transparent: true, opacity: 0.5 });
+            m.baubleMaterial = new THREE.MeshLambertMaterial({ color: colors.darkorange, wireframe: false, transparent: true, opacity: 0.5 });
+            break;
+        case "phong":
+            for (const [name, color] of Object.entries(colors)) {
+                m[name] = new THREE.MeshPhongMaterial({ color: color, wireframe: false });
+            }
+            m.cockpitMaterial = new THREE.MeshPhongMaterial({ color: colors.lightblue, wireframe: false, transparent: true, opacity: 0.5 });
+            m.baubleMaterial = new THREE.MeshPhongMaterial({ color: colors.darkorange, wireframe: false, transparent: true, opacity: 0.5 });
+            break;
+        case "cartoon":
+            for (const [name, color] of Object.entries(colors)) {
+                m[name] = new THREE.MeshToonMaterial({ color: color, wireframe: false });
+            }
+            m.cockpitMaterial = new THREE.MeshToonMaterial({ color: colors.lightblue, wireframe: false, transparent: true, opacity: 0.5 });
+            m.baubleMaterial = new THREE.MeshToonMaterial({ color: colors.darkorange, wireframe: false, transparent: true, opacity: 0.5 });
+            break;
+    }
 
     // Boxes and Cylinders materials
-    for (const [name, color] of Object.entries(colors)) {
+    /*for (const [name, color] of Object.entries(colors)) {
         //m[name] = new THREE.MeshBasicMaterial({ color: color, wireframe: false });
-        m[name] = new THREE.MeshPhongMaterial({ color: color, wireframe: false });
-        // must cast shadows in order to receive shadows
-        m[name].castShadow = true;
-    }
+        m[name] = new THREE.MeshStandardMaterial({ color: color, wireframe: false });
+    }*/
     // Edges material
     edgesMaterial = new THREE.LineBasicMaterial({ color: colors.black, visible: false });
 }
@@ -111,8 +137,6 @@ function createMaterials() {
 
 function createTerrain() {
     const groundGeometry = new THREE.PlaneGeometry(25000, 25000, 100, 100);
-
-    //create a canvas element and add the texture at images/texture.png
 
     let image = new Image();
     image.src = "../images/fieldTexture.png";
@@ -127,6 +151,7 @@ function createTerrain() {
 
         for (let x = 0; x < 10; x++) {
             for (let y = 0; y < 10; y++) {
+                // rotation and translation magic to draw each tile in the right place
                 const rotation = (Math.floor(Math.random() * 4)) * 90; // Random rotation in multiples of 90 degrees
                 context.save(); // Save the current state of the context
                 context.translate((x * width) + (width / 2), (y * height) + (height / 2)); // Translate to the center of the image
@@ -138,7 +163,6 @@ function createTerrain() {
 
         // load the texture from the canvas
         const groundTexture = new THREE.CanvasTexture(canvas);
-        //
 
         const disMap = new THREE.TextureLoader().setPath("../images").load("/heightmap.png");
 
@@ -161,10 +185,9 @@ function createTerrain() {
 }
 
 function createSkydome() {
-    // must be double-sided in order to see the inside of the skydome
+
     const skydomeGeometry = new THREE.SphereGeometry(12500, 64, 64);
-    // get the texture from images/skytexture.jpg
-    const skydomeTexture = new THREE.TextureLoader().setPath("../images").load("/skytexture.png");
+    const skydomeTexture = new THREE.TextureLoader().setPath('../images').load('/skytexture.png');
     const skydomeMaterial = new THREE.MeshBasicMaterial({ map: skydomeTexture, side: THREE.DoubleSide });
     const skydome = new THREE.Mesh(skydomeGeometry, skydomeMaterial);
     ufoScene.add(skydome);
@@ -173,14 +196,14 @@ function createSkydome() {
 function createFlyingSaucer() {
     ufoBody3D = createObject3D(ufoScene, -1000, 2000, 500);
     createGeometry('ell', [d.bodyRadius, 3/8, 1, 1], m.darkgrey, ufoBody3D, 0, 0, 0, rAxes.z, Math.PI/2);
+
     ufoCockpit3D = createObject3D(ufoBody3D, 0, 0, 0);
-    let glassMaterial = new THREE.MeshBasicMaterial({ color: colors.lightblue, wireframe: false, transparent: true, opacity: 0.5 });
-    createGeometry('sph', [d.bodyRadius / 2], glassMaterial, ufoBody3D, 0, 100, 0);
+    createGeometry('sph', [d.bodyRadius / 2], m.cockpitMaterial, ufoBody3D, 0, 100, 0);
+
     ufoBauble3D = createObject3D(ufoBody3D, 0, 0, 0);
     //place the baubles radially in increments of 30 degrees
-    let baubleMaterial = new THREE.MeshBasicMaterial({ color: colors.lightyellow, wireframe: false, transparent: true, opacity: 0.5 });
     for (let i = 0; i < 12; i++) {
-        createGeometry('sph', [d.bodyRadius / 10], baubleMaterial, ufoBauble3D, d.bodyRadius * 0.8 * Math.sin(i * Math.PI / 6), -140, d.bodyRadius * 0.8 * Math.cos(i * Math.PI / 6));
+        createGeometry('sph', [d.bodyRadius / 10], m.baubleMaterial, ufoBauble3D, d.bodyRadius * 0.8 * Math.sin(i * Math.PI / 6), -140, d.bodyRadius * 0.8 * Math.cos(i * Math.PI / 6));
         //add point light to each bauble
         let pointLight = new THREE.PointLight(colors.lightyellow, 1, 1000);
         pointLight.intensity = 5;
@@ -190,12 +213,14 @@ function createFlyingSaucer() {
         let textureFlare0 = textureLoader.load("../images/cat.png");
         let lensFlare = new THREE.LensFlare(textureFlare0, 100, 0.0, THREE.AdditiveBlending, colors.lightyellow);
         pointLight.add(lensFlare);
+        pointlights.push(pointLight);
         ufoBauble3D.add(pointLight);
     }
+
     ufoQuantumPhotonicResonator3D = createObject3D(ufoBody3D, 0, 0, 0);
     createGeometry('cyl', [d.bodyRadius / 10, d.bodyRadius / 10, d.bodyRadius / 2], m.goldenyellow, ufoQuantumPhotonicResonator3D, 0, -200, 0);
 
-
+    // add spherical cat (meme)
     let catPassenger = createObject3D(ufoBody3D, 0, 0, 0);
     //get cat.png from the images folder
     let catTexture = new THREE.TextureLoader().setPath("../images").load("/cat.png");
@@ -206,31 +231,20 @@ function createFlyingSaucer() {
     let lightTarget = createObject3D(ufoBody3D, 0, -1000, 0);
 
     // add spotlight to quantum photonic resonator pointing down
-    let spotLight = new THREE.SpotLight(colors.white, 1);
+    spotLight = new THREE.SpotLight(colors.white, 1);
     spotLight.position.set(0, -400, 0);
-    spotLight.angle = Math.PI / 4;
 	spotLight.intensity = 3;
     spotLight.penumbra = 0.1;
     spotLight.castShadow = true;
-    // point down
-    //radius of the light cone
     spotLight.distance = 3000;
     spotLight.target = lightTarget;
     spotLight.target.updateMatrixWorld();
 
-    let lightHelper = new THREE.SpotLightHelper( spotLight );
+    let lightHelper = new THREE.SpotLightHelper(spotLight);
     lightHelper.visible = true;
     ufoScene.add( lightHelper );
 
     ufoBody3D.add(spotLight);
-
-    // create sphere at the same position as the spotlight
-    let spotLightSphere = new THREE.SphereGeometry(10, 10, 10);
-    let spotLightSphereMesh = new THREE.Mesh(spotLightSphere, m.white);
-    spotLightSphereMesh.position.set(0, -400, 0);
-    ufoBody3D.add(spotLightSphereMesh);
-
-
 
 }
 
@@ -250,14 +264,10 @@ function createCorkTree(x, y, z, s) {
     // Branch Crown 3D (parent: branch 3D; children: branch crown)
     branchCrown3D = createObject3D(branch3D, 0, s*(d.lowBranchH+d.uppBranchH), 0);
     createGeometry('ell', [s*d.branchCrownR, 1, 0.5, 1], m.darkgreen, branchCrown3D, 0, s*d.branchCrownR/4, 0);
-    trunk3D.castShadow = true;
-    trunkCrown3D.castShadow = true;
-    branch3D.castShadow = true;
-    branchCrown3D.castShadow = true;
 
     // Object3D's Final Rotations
     trunk3D.rotateOnWorldAxis(rAxes.y, getRandomAngle(0, 2*Math.PI));
-    trunk3D.rotateOnWorldAxis(rAxes.x, getRandomAngle(-Math.PI/8, Math.PI/8));
+    trunk3D.rotateOnWorldAxis(rAxes.x, getRandomAngle(-Math.PI/12, Math.PI/12));
     trunk3D.rotateOnWorldAxis(rAxes.z, getRandomAngle(-Math.PI/5, 0));
     branch3D.rotateOnWorldAxis(rAxes.x, getRandomAngle(-Math.PI/8, Math.PI/8));
     branch3D.rotateOnWorldAxis(rAxes.z, getRandomAngle(Math.PI/6, Math.PI/3));
@@ -276,40 +286,39 @@ function createMoon() {
     // Moon 3D (parent: scene; children: moon)
     moon3D = createObject3D(ufoScene, 5000, 5000, 5000);
     createGeometry('sph', [d.moonR], m.lightyellow, moon3D, 0, 0, 0);
-    // add directional lightyellow light
-    let moonLight = new THREE.DirectionalLight(m.lightyellow, 1);
-    moonLight.position.set(0, 0, 0);
-    moon3D.add(moonLight);
-    // directional lightyellow helper
-    let moonLightHelper = new THREE.DirectionalLightHelper(moonLight, 1000);
-    moon3D.add(moonLightHelper);
-    // light direction is slightly tilted
-    moonLight.target.position.set(0, 0, 0);
+
+    // Moon's directional light and shadow properties
+    moonLight = new THREE.DirectionalLight(m.lightyellow, 2);
+    moonLight.position.set(0, -d.moonR - 20, -d.moonR - 20);
     moonLight.castShadow = true;
-    // TODO
 
-}
-
-//////////////////////
-/* CHECK COLLISIONS */
-//////////////////////
-
-function checkCollisions() {
-
-}
-
-///////////////////////
-/* HANDLE COLLISIONS */
-///////////////////////
-
-function handleCollisions() {
-
+    moonLight.shadow.camera.near = 0.5;
+    moonLight.shadow.camera.far = 15000;
+    const value = 9999;
+    moonLight.shadow.camera.left = - value;
+    moonLight.shadow.camera.right = value;
+    moonLight.shadow.camera.top = value;
+    moonLight.shadow.camera.bottom = - value;
+    moon3D.add(moonLight);
+    // TODO: remove LightHelper
+    const helper = new THREE.CameraHelper( moonLight.shadow.camera );
+    ufoScene.add(helper);
 }
 
 ////////////
 /* UPDATE */
 ////////////
 
+/*
+- D - toggle da luz da lua
+- P - toggle da spotlight
+- S - toggle das luzes pontuais
+- Q - Tipo de sombreamento para gourard
+- W - Phong
+- E - Cartoon shader
+- R - Desativar iluminação
+- 1 - VR
+*/
 function update(delta) {
     rotateSaucer(rotationSpeed, delta);
     for (let k in keys) {
@@ -327,7 +336,6 @@ function update(delta) {
                 case "40": // down arrow
                     moveSaucer('z', movementSpeed, delta);
                     break;
-
             }
         }
     }
@@ -338,6 +346,7 @@ function update(delta) {
 /////////////
 
 function render() {
+
     ufoRenderer.render(ufoScene, camera);
 }
 
@@ -349,7 +358,7 @@ function init() {
 
     ufoRenderer = new THREE.WebGLRenderer({ antialias: true });
     ufoRenderer.setSize(window.innerWidth, window.innerHeight);
-    ufoRenderer.setPixelRatio( window.devicePixelRatio );
+    ufoRenderer.setPixelRatio(window.devicePixelRatio);
     ufoRenderer.setClearColor(0x656597, 1);
     ufoRenderer.shadowMap.enabled = true;
     ufoRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -396,6 +405,7 @@ function animate() {
 ////////////////////////////
 
 function onResize() {
+
     ufoRenderer.setSize(window.innerWidth, window.innerHeight);
     if (window.innerHeight > 0 && window.innerWidth > 0) {
         if (camera instanceof THREE.OrthographicCamera)
@@ -411,16 +421,28 @@ function onResize() {
 ///////////////////////
 
 function onKeyDown(e) {
+
     switch (e.keyCode) {
         case 57: // 9
-        if (!isAxesHelperVisible) {
-            ufoScene.add(axesHelper);
-            isAxesHelperVisible = true;
-        } else {
-            ufoScene.remove(axesHelper);
-            isAxesHelperVisible = false;
-        }
-        break;
+            if (!isAxesHelperVisible) {
+                ufoScene.add(axesHelper);
+                isAxesHelperVisible = true;
+            } else {
+                ufoScene.remove(axesHelper);
+                isAxesHelperVisible = false;
+            }
+            break;
+        case 68: // D
+        case 100: // d
+            moonLight.intensity = moonLight.intensity === 0 ? 2 : 0;
+            break;
+        case 80: // P
+        case 112: // p
+            spotLight.intensity = spotLight.intensity === 0 ? 3 : 0;
+            break;
+        case 83: // S
+        case 115: // s
+            togglePointLights();
         default:
             keys[e.keyCode] = true;
     }
@@ -432,6 +454,7 @@ function onKeyDown(e) {
 ///////////////////////
 
 function onKeyUp(e) {
+
     keys[e.keyCode] = false;
 }
 
@@ -440,15 +463,20 @@ function onKeyUp(e) {
 ////////////////////////
 
 function moveSaucer(axis, speed, delta) {
+
     let adjustment;
-    if (axis === 'x') {
+    if (axis === 'x')
         adjustment = new THREE.Vector3(speed * delta, 0, 0);
-    } else if (axis === 'z') {
+    else if (axis === 'z')
         adjustment = new THREE.Vector3(0, 0, speed * delta);
-    }
     ufoBody3D.position.add(adjustment);
 }
 
+function togglePointLights() {
+
+}
+
 function rotateSaucer(rotationSpeed, delta) {
+
     ufoBody3D.rotateOnWorldAxis(rAxes.y, rotationSpeed * delta);
 }
