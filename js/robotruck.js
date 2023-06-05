@@ -32,6 +32,7 @@ let previousTime = 0, currentTime = 0;
 // Cameras
 let camera;
 const cameras = {front: null, side: null, top: null, iso: null, persp: null};
+let windowResized = false;
 let controls;
 
 // Keys
@@ -297,13 +298,23 @@ function updateRoboTruckAABB() {
 ////////////
 
 function update(delta) {
+
     let tentativeBody3DPos;
+    // Update cameras if window has been resized
+    if (windowResized) {
+        updateOrthographicCamera(cameras.front, 5/6);
+        updateOrthographicCamera(cameras.side, 5/6);
+        updateOrthographicCamera(cameras.top, 5/6);
+        updateOrthographicCamera(cameras.iso, 5/6);
+        updatePerspectiveCamera(cameras.persp);
+        windowResized = false;
+    }
     // If Trailer is coupling with RoboTruck
     if (coupling) {
         if (!trailerBehindTruck)
             moveTrailerBehindTruck();
         else {
-            console.log("coupling");
+            console.log('coupling');
             doCouplingAnimation(delta);
         }
     } // Else if Trailer is unlocking latches
@@ -315,55 +326,55 @@ function update(delta) {
             if (keys[k] === true) {
                 switch (k) {
                     // Head Rotation Controls (keys R, F)
-                    case "82": // R
-                    case "114": // r
+                    case '82': // R
+                    case '114': // r
                         rotateHead(rotationSpeed * 2, delta);
                         break;
-                    case "70": // F
-                    case "102": // f
+                    case '70': // F
+                    case '102': // f
                         rotateHead(-rotationSpeed * 2, delta);
                         break;
                     // Arms Movement Controls (keys E, D)
-                    case "69": // E
-                    case "101": // e
+                    case '69': // E
+                    case '101': // e
                         moveArms(movementSpeed, delta);
                         break;
-                    case "68": // D
-                    case "100": // d
+                    case '68': // D
+                    case '100': // d
                         moveArms(-movementSpeed, delta);
                         break;
                     // Thighs Rotation Controls (keys W, S)
-                    case "87": // W
-                    case "119": // w
+                    case '87': // W
+                    case '119': // w
                         rotateThighs(rotationSpeed, delta);
                         break;
-                    case "83": // S
-                    case "115": // s
+                    case '83': // S
+                    case '115': // s
                         rotateThighs(-rotationSpeed, delta);
                         break;
                     // Boots Rotation Controls (keys Q, A)
-                    case "81": // Q
-                    case "113": // q
+                    case '81': // Q
+                    case '113': // q
                         rotateBoots(rotationSpeed, delta);
                         break;
-                    case "65": // A
-                    case "97": // a
+                    case '65': // A
+                    case '97': // a
                         rotateBoots(-rotationSpeed, delta);
                         break;
                     // Trailer Movement Controls (keys left, up, right, down)
-                    case "37": // left
+                    case '37': // left
                         tentativeBody3DPos = checkMoveTrailer('x', -movementSpeed, delta);
                         executeMoveTrailer(tentativeBody3DPos);
                         break;
-                    case "38": // up
+                    case '38': // up
                         tentativeBody3DPos = checkMoveTrailer('z', -movementSpeed, delta);
                         executeMoveTrailer(tentativeBody3DPos);
                         break;
-                    case "39": // right
+                    case '39': // right
                         tentativeBody3DPos = checkMoveTrailer('x', movementSpeed, delta);
                         executeMoveTrailer(tentativeBody3DPos);
                         break;
-                    case "40": // down
+                    case '40': // down
                         tentativeBody3DPos = checkMoveTrailer('z', movementSpeed, delta);
                         executeMoveTrailer(tentativeBody3DPos);
                         break;
@@ -421,17 +432,16 @@ function render() {
 
 function init() {
 
-    rtRenderer = new THREE.WebGLRenderer({
-        antialias: true
-    });
+    // Create renderer
+    rtRenderer = new THREE.WebGLRenderer({ antialias: true });
     rtRenderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(rtRenderer.domElement);
 
     // Create all cameras and set default camera
-    cameras.front = createOrthographicCamera(0, 0, 500, 0, 0, 0, -500, 5000);
-    cameras.side = createOrthographicCamera(500, 0, 0, 0, 0, 0, -500, 5000);
-    cameras.top = createOrthographicCamera(0, 500, 0, 0, 0, 0, -500, 5000);
-    cameras.iso = createOrthographicCamera(500, 500, 500, 0, 0, 0, -500, 5000);
+    cameras.front = createOrthographicCamera(0, 0, 500, 0, 0, 0, -500, 5000, 5/6);
+    cameras.side = createOrthographicCamera(500, 0, 0, 0, 0, 0, -500, 5000, 5/6);
+    cameras.top = createOrthographicCamera(0, 500, 0, 0, 0, 0, -500, 5000, 5/6);
+    cameras.iso = createOrthographicCamera(500, 500, 500, 0, 0, 0, -500, 5000, 5/6);
     cameras.persp = createPerspectiveCamera(750, 500, 500, 0, 0, 0, 1, 5000, 70);
     camera = cameras.front;
 
@@ -446,10 +456,9 @@ function init() {
     rAxes.y = new THREE.Vector3(0, 1, 0);
     rAxes.z = new THREE.Vector3(0, 0, 1);
 
+    // Create scene, keep track of time and add event listeners
     createScene();
-
     previousTime = performance.now();
-
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('resize', onResize);
     window.addEventListener('keyup', onKeyUp);
@@ -474,13 +483,10 @@ function animate() {
 ////////////////////////////
 
 function onResize() {
+
     rtRenderer.setSize(window.innerWidth, window.innerHeight);
-    if (window.innerHeight > 0 && window.innerWidth > 0) {
-        if (camera instanceof THREE.OrthographicCamera)
-            updateOrthographicCamera(camera);
-        else
-            updatePerspectiveCamera(camera);
-    }
+    if (window.innerHeight > 0 && window.innerWidth > 0)
+        windowResized = true;
 }
 
 ///////////////////////
@@ -493,23 +499,18 @@ function onKeyDown(e) {
         // Camera Controls (keys 1, 2, 3, 4, 5, C)
         case 49: // 1
             camera = cameras.front;
-            updateOrthographicCamera(camera);
             break;
         case 50: // 2
             camera = cameras.side;
-            updateOrthographicCamera(camera);
             break;
         case 51: // 3
             camera = cameras.top;
-            updateOrthographicCamera(camera);
             break;
         case 52: // 4
             camera = cameras.iso;
-            updateOrthographicCamera(camera);
             break;
         case 53: // 5
             camera = cameras.persp;
-            updatePerspectiveCamera(camera);
             break;
         case 67: // C
         case 99: // c

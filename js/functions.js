@@ -3,20 +3,20 @@
 /* CREATE AND UPDATE CAMERAS */
 ///////////////////////////////
 
-function createOrthographicCamera(x, y, z, lx, ly, lz, near, far) {
+function createOrthographicCamera(x, y, z, lx, ly, lz, near, far, scale) {
 
-    const width = 5*window.innerWidth/6;
-    const height = 5*window.innerHeight/6;
+    const width = scale * window.innerWidth;
+    const height = scale * window.innerHeight;
     const camera = new THREE.OrthographicCamera(-width, width, height, -height, near, far);
     camera.position.set(x, y, z);
     camera.lookAt(lx, ly, lz);
     return camera;
 }
 
-function updateOrthographicCamera(camera) {
+function updateOrthographicCamera(camera, scale) {
 
-    const width = 3*window.innerWidth/4;
-    const height = 3*window.innerHeight/4;
+    const width = scale * window.innerWidth;
+    const height = scale * window.innerHeight;
     camera.left = -width;
     camera.right = width;
     camera.top = height;
@@ -37,6 +37,18 @@ function updatePerspectiveCamera(camera) {
 
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+}
+
+function createStereoCamera(eyeSeparation) {
+
+    const camera = new THREE.StereoCamera();
+    camera.eyeSep = eyeSeparation;
+    return camera;
+}
+
+function updateStereoCamera(camera) {
+
+        camera.update(camera.cameraL, camera.cameraR);
 }
 
 ////////////////////////////////////
