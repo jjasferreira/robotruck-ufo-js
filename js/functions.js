@@ -39,25 +39,6 @@ function updatePerspectiveCamera(camera) {
     camera.updateProjectionMatrix();
 }
 
-function createStereoCamera(sep, near, far, fov) {
-
-    const aspect = window.innerWidth / window.innerHeight;
-    const camera = new THREE.StereoCamera();
-    camera.eyeSep = sep;
-    camera.cameraL = new THREE.PerspectiveCamera(fov, aspect, near, far);
-    camera.cameraR = new THREE.PerspectiveCamera(fov, aspect, near, far);
-    return camera;
-}
-
-function updateStereoCamera(camera) {
-
-    const aspect = window.innerWidth/2 / window.innerHeight;
-    camera.cameraL.aspect = aspect;
-    camera.cameraR.aspect = aspect;
-    camera.cameraL.updateProjectionMatrix();
-    camera.cameraR.updateProjectionMatrix();
-}
-
 ////////////////////////////////////
 /* CREATE OBJECT3D AND GEOMETRIES */
 ////////////////////////////////////
@@ -70,7 +51,7 @@ function createObject3D(parent, x = 0, y = 0, z = 0) {
     return obj3D;
 }
 
-function createGeometry(type, parameters, material, parent, x = 0, y = 0, z = 0, rAxis = null, rAngle = null) {
+function createMesh(type, parameters, material, parent, x = 0, y = 0, z = 0, rAxis = null, rAngle = null) {
 
     // Create geometry based on the type
     let geometry;

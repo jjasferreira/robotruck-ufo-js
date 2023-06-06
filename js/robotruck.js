@@ -122,72 +122,72 @@ function createRoboTruck() {
 
     // Torso 3D (parent: scene; children: torso, head 3D, arms 3Ds, abdomen 3D)
     torso3D = createObject3D(rtScene, 0, d.torsoH/2+d.abdomenH+d.waistH+d.wheelR/2, 0);
-    createGeometry('box', [d.torsoW, d.torsoH, d.torsoD], m.grey, torso3D);
+    createMesh('box', [d.torsoW, d.torsoH, d.torsoD], m.grey, torso3D);
     // Head 3D (parent: torso 3D; children: head, eyes, antennas)
     head3D = createObject3D(torso3D, 0, d.torsoH/2, -d.torsoD/2);
-    createGeometry('box', [d.headW, d.headH, d.headD], m.beige, head3D, 0, d.headH/2, d.headD/2);
-    createGeometry('box', [d.eyeW, d.eyeH, d.eyeD], m.white, head3D, -d.headW/4, 3*d.headH/5, d.headD);
-    createGeometry('box', [d.eyeW, d.eyeH, d.eyeD], m.white, head3D, d.headW/4, 3*d.headH/5, d.headD);
-    createGeometry('box', [d.antennaW, d.antennaH, d.antennaD], m.red, head3D, -d.headW/4, d.headH, 0);
-    createGeometry('box', [d.antennaW, d.antennaH, d.antennaD], m.red, head3D, d.headW/4, d.headH, 0);
+    createMesh('box', [d.headW, d.headH, d.headD], m.beige, head3D, 0, d.headH/2, d.headD/2);
+    createMesh('box', [d.eyeW, d.eyeH, d.eyeD], m.white, head3D, -d.headW/4, 3*d.headH/5, d.headD);
+    createMesh('box', [d.eyeW, d.eyeH, d.eyeD], m.white, head3D, d.headW/4, 3*d.headH/5, d.headD);
+    createMesh('box', [d.antennaW, d.antennaH, d.antennaD], m.red, head3D, -d.headW/4, d.headH, 0);
+    createMesh('box', [d.antennaW, d.antennaH, d.antennaD], m.red, head3D, d.headW/4, d.headH, 0);
     // Arms 3Ds (parent: torso 3D; children: upper arms, exhaust pipes, lower arms)
     lArm3D = createObject3D(torso3D, -d.torsoW/2, 0, -d.torsoD/2);
     rArm3D = createObject3D(torso3D, d.torsoW/2, 0, -d.torsoD/2);
-    createGeometry('box', [d.uppArmW, d.uppArmH, d.uppArmD], m.darkgreen, lArm3D, -d.uppArmW/2, 0, -d.uppArmD/2);
-    createGeometry('box', [d.uppArmW, d.uppArmH, d.uppArmD], m.darkgreen, rArm3D, d.uppArmW/2, 0, -d.uppArmD/2);
-    createGeometry('cyl', [d.pipeR, d.pipeR, d.pipeH], m.grey, lArm3D, -d.pipeR-d.uppArmW, 3*d.uppArmH/8, d.pipeR-d.uppArmD);
-    createGeometry('cyl', [d.pipeR, d.pipeR, d.pipeH], m.grey, rArm3D, d.pipeR+d.uppArmW, 3*d.uppArmH/8, d.pipeR-d.uppArmD);
-    createGeometry('box', [d.lowArmW, d.lowArmH, d.lowArmD], m.amber, lArm3D, -d.uppArmW/2, -d.lowArmH/2-d.uppArmH/2, d.lowArmD/2-d.uppArmD);
-    createGeometry('box', [d.lowArmW, d.lowArmH, d.lowArmD], m.amber, rArm3D, d.uppArmW/2, -d.lowArmH/2-d.uppArmH/2, d.lowArmD/2-d.uppArmD);
+    createMesh('box', [d.uppArmW, d.uppArmH, d.uppArmD], m.darkgreen, lArm3D, -d.uppArmW/2, 0, -d.uppArmD/2);
+    createMesh('box', [d.uppArmW, d.uppArmH, d.uppArmD], m.darkgreen, rArm3D, d.uppArmW/2, 0, -d.uppArmD/2);
+    createMesh('cyl', [d.pipeR, d.pipeR, d.pipeH], m.grey, lArm3D, -d.pipeR-d.uppArmW, 3*d.uppArmH/8, d.pipeR-d.uppArmD);
+    createMesh('cyl', [d.pipeR, d.pipeR, d.pipeH], m.grey, rArm3D, d.pipeR+d.uppArmW, 3*d.uppArmH/8, d.pipeR-d.uppArmD);
+    createMesh('box', [d.lowArmW, d.lowArmH, d.lowArmD], m.amber, lArm3D, -d.uppArmW/2, -d.lowArmH/2-d.uppArmH/2, d.lowArmD/2-d.uppArmD);
+    createMesh('box', [d.lowArmW, d.lowArmH, d.lowArmD], m.amber, rArm3D, d.uppArmW/2, -d.lowArmH/2-d.uppArmH/2, d.lowArmD/2-d.uppArmD);
     // Abdomen 3D (parent: torso 3D; children: abdomen, waist 3D)
     abdomen3D = createObject3D(torso3D, 0, -d.torsoH/2, 0);
-    createGeometry('box', [d.abdomenW, d.abdomenH, d.abdomenD], m.darkgreen, abdomen3D, 0, -d.abdomenH/2, 0);
+    createMesh('box', [d.abdomenW, d.abdomenH, d.abdomenD], m.darkgreen, abdomen3D, 0, -d.abdomenH/2, 0);
     // Waist 3D (parent: abdomen 3D; children: waist, front wheels, thighs 3D)
     waist3D = createObject3D(abdomen3D, 0, -d.abdomenH, d.abdomenD/8);
-    createGeometry('box', [d.waistW, d.waistH, d.waistD], m.grey, waist3D, 0, -d.waistH/2, 0);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, waist3D, -d.wheelH/2-d.waistW/2, -3*d.waistH/4, 0, rAxes.z, Math.PI/2);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, waist3D, d.wheelH/2+d.waistW/2, -3*d.waistH/4, 0, rAxes.z, Math.PI/2);
+    createMesh('box', [d.waistW, d.waistH, d.waistD], m.grey, waist3D, 0, -d.waistH/2, 0);
+    createMesh('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, waist3D, -d.wheelH/2-d.waistW/2, -3*d.waistH/4, 0, rAxes.z, Math.PI/2);
+    createMesh('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, waist3D, d.wheelH/2+d.waistW/2, -3*d.waistH/4, 0, rAxes.z, Math.PI/2);
     // Thighs 3D (parent: waist 3D; children: thighs, legs 3D)
     thighs3D = createObject3D(waist3D, 0, -d.waistH, -d.waistD/2);
-    createGeometry('box', [d.thighW, d.thighH, d.thighD], m.lightblue, thighs3D, -d.waistW/3, -d.thighH/2, -d.thighD/2);
-    createGeometry('box', [d.thighW, d.thighH, d.thighD], m.lightblue, thighs3D, d.waistW/3, -d.thighH/2, -d.thighD/2);
+    createMesh('box', [d.thighW, d.thighH, d.thighD], m.lightblue, thighs3D, -d.waistW/3, -d.thighH/2, -d.thighD/2);
+    createMesh('box', [d.thighW, d.thighH, d.thighD], m.lightblue, thighs3D, d.waistW/3, -d.thighH/2, -d.thighD/2);
     // Legs 3D (parents: thighs 3D; children: legs, back wheels, trailer socket, boots 3D)
     legs3D = createObject3D(thighs3D, 0, -d.thighH, -d.thighD);
-    createGeometry('box', [d.legW, d.legH, d.legD], m.darkblue, legs3D, -d.waistW/3, -d.legH/2, 0);
-    createGeometry('box', [d.legW, d.legH, d.legD], m.darkblue, legs3D, d.waistW/3, -d.legH/2, 0);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, legs3D, -d.waistW/3-d.wheelH/2-d.legW/2, -7*d.legH/16, d.legD/4, rAxes.z, Math.PI/2);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, legs3D, -d.waistW/3-d.wheelH/2-d.legW/2, -13*d.legH/16, d.legD/4, rAxes.z, Math.PI/2);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, legs3D, d.waistW/3+d.wheelH/2+d.legW/2, -7*d.legH/16, d.legD/4, rAxes.z, Math.PI/2);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, legs3D, d.waistW/3+d.wheelH/2+d.legW/2, -13*d.legH/16, d.legD/4, rAxes.z, Math.PI/2);
-    createGeometry('box', [d.socketW, d.socketH, d.socketD], m.lime, legs3D, -d.waistW/3+d.legW/4, -5*d.legH/16, -3*d.socketD/2);
-    createGeometry('box', [d.socketW, d.socketH, d.socketD], m.lime, legs3D, d.waistW/3-d.legW/4, -5*d.legH/16, -3*d.socketD/2);
+    createMesh('box', [d.legW, d.legH, d.legD], m.darkblue, legs3D, -d.waistW/3, -d.legH/2, 0);
+    createMesh('box', [d.legW, d.legH, d.legD], m.darkblue, legs3D, d.waistW/3, -d.legH/2, 0);
+    createMesh('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, legs3D, -d.waistW/3-d.wheelH/2-d.legW/2, -7*d.legH/16, d.legD/4, rAxes.z, Math.PI/2);
+    createMesh('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, legs3D, -d.waistW/3-d.wheelH/2-d.legW/2, -13*d.legH/16, d.legD/4, rAxes.z, Math.PI/2);
+    createMesh('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, legs3D, d.waistW/3+d.wheelH/2+d.legW/2, -7*d.legH/16, d.legD/4, rAxes.z, Math.PI/2);
+    createMesh('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, legs3D, d.waistW/3+d.wheelH/2+d.legW/2, -13*d.legH/16, d.legD/4, rAxes.z, Math.PI/2);
+    createMesh('box', [d.socketW, d.socketH, d.socketD], m.lime, legs3D, -d.waistW/3+d.legW/4, -5*d.legH/16, -3*d.socketD/2);
+    createMesh('box', [d.socketW, d.socketH, d.socketD], m.lime, legs3D, d.waistW/3-d.legW/4, -5*d.legH/16, -3*d.socketD/2);
     // Boots 3D (parents: legs 3D; children: boots)
     boots3D = createObject3D(legs3D, 0, -d.legH, d.legD/2);
-    createGeometry('box', [d.bootW, d.bootH, d.bootD], m.grey, boots3D, -d.waistW/3, -d.bootH/2, d.bootD/2);
-    createGeometry('box', [d.bootW, d.bootH, d.bootD], m.grey, boots3D, d.waistW/3, -d.bootH/2, d.bootD/2);
+    createMesh('box', [d.bootW, d.bootH, d.bootD], m.grey, boots3D, -d.waistW/3, -d.bootH/2, d.bootD/2);
+    createMesh('box', [d.bootW, d.bootH, d.bootD], m.grey, boots3D, d.waistW/3, -d.bootH/2, d.bootD/2);
 }
 
 function createTrailer() {
 
     // Body 3D (parent: scene; children: body, coupler, latches 3Ds, plate 3D)
     body3D = createObject3D(rtScene, 500, d.bodyH/2+d.plateH+d.chassisH+d.wheelR/2, -1250);
-    createGeometry('box', [d.bodyW, d.bodyH, d.bodyD], m.salmon, body3D, 0, 0, 0);
-    createGeometry('box', [d.couplerW, d.couplerH, d.couplerD], m.grey, body3D, 0, -d.couplerH/2-d.bodyH/2, -5*d.couplerD/6+d.bodyD/2);
+    createMesh('box', [d.bodyW, d.bodyH, d.bodyD], m.salmon, body3D, 0, 0, 0);
+    createMesh('box', [d.couplerW, d.couplerH, d.couplerD], m.grey, body3D, 0, -d.couplerH/2-d.bodyH/2, -5*d.couplerD/6+d.bodyD/2);
     // Latches 3Ds (parent: body 3D; children: latches)
     lLatch3D = createObject3D(body3D, -d.latchW, -d.latchH/2-d.bodyH/2, -d.latchD+d.bodyD/2);
     rLatch3D = createObject3D(body3D, d.latchW, -d.latchH/2-d.bodyH/2, -d.latchD+d.bodyD/2);
-    createGeometry('box', [d.latchW, d.latchH, d.latchD], m.black, lLatch3D, d.latchW/2, 0, d.latchD/2);
-    createGeometry('box', [d.latchW, d.latchH, d.latchD], m.black, rLatch3D, -d.latchW/2, 0, d.latchD/2);
+    createMesh('box', [d.latchW, d.latchH, d.latchD], m.black, lLatch3D, d.latchW/2, 0, d.latchD/2);
+    createMesh('box', [d.latchW, d.latchH, d.latchD], m.black, rLatch3D, -d.latchW/2, 0, d.latchD/2);
     // Plate 3D (parent: body 3D; children: plate, chassis 3D)
     plate3D = createObject3D(body3D, 0, -d.bodyH/2, -d.bodyD/2);
-    createGeometry('box', [d.plateW, d.plateH, d.plateD], m.grey,  plate3D, 0, -d.plateH/2, d.plateD/2);
+    createMesh('box', [d.plateW, d.plateH, d.plateD], m.grey,  plate3D, 0, -d.plateH/2, d.plateD/2);
     // Chassis 3D (parent: plate 3D; children: chassis, wheels)
     chassis3D = createObject3D(plate3D, 0, -d.plateH, 0);
-    createGeometry('box', [d.chassisW, d.chassisH, d.chassisD], m.black, chassis3D, 0, -d.chassisH/2, d.chassisD/2);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, chassis3D, -d.wheelH/2-d.chassisW/2, -3*d.chassisH/4, 3*d.chassisD/10, rAxes.z, Math.PI/2);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, chassis3D, d.wheelH/2+d.chassisW/2, -3*d.chassisH/4, 3*d.chassisD/10, rAxes.z, Math.PI/2);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, chassis3D, -d.wheelH/2-d.chassisW/2, -3*d.chassisH/4, 7*d.chassisD/10, rAxes.z, Math.PI/2);
-    createGeometry('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, chassis3D, d.wheelH/2+d.chassisW/2, -3*d.chassisH/4, 7*d.chassisD/10, rAxes.z, Math.PI/2);
+    createMesh('box', [d.chassisW, d.chassisH, d.chassisD], m.black, chassis3D, 0, -d.chassisH/2, d.chassisD/2);
+    createMesh('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, chassis3D, -d.wheelH/2-d.chassisW/2, -3*d.chassisH/4, 3*d.chassisD/10, rAxes.z, Math.PI/2);
+    createMesh('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, chassis3D, d.wheelH/2+d.chassisW/2, -3*d.chassisH/4, 3*d.chassisD/10, rAxes.z, Math.PI/2);
+    createMesh('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, chassis3D, -d.wheelH/2-d.chassisW/2, -3*d.chassisH/4, 7*d.chassisD/10, rAxes.z, Math.PI/2);
+    createMesh('cyl', [d.wheelR, d.wheelR, d.wheelH], m.darkgrey, chassis3D, d.wheelH/2+d.chassisW/2, -3*d.chassisH/4, 7*d.chassisD/10, rAxes.z, Math.PI/2);
 }
 
 ////////////////////////////////////////
