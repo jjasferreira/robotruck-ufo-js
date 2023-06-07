@@ -17,6 +17,7 @@
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
+const debugMode = false;
 
 let ufoScene, ufoRenderer;
 
@@ -51,6 +52,8 @@ let rAxes = {};
 // Terrain's variables
 let terrain, disMap, disScale, terrainTexture;
 
+let skydome;
+
 // UFO's Object3Ds
 let body3D, cockpit3D, baubles3D, cylinder3D;
 let pointLights = [];
@@ -76,8 +79,8 @@ const d = {
 
 // UFO's and Moon's lights
 let pointLightIntensity = 1.5, pointLightHelper,
-    spotLight, spotLightIntensity = 4.5, spotLightHelper,
-    moonLight, moonLightIntensity = 0.5, moonLightHelper;
+    spotLight, spotLightIntensity = 8.5, spotLightHelper,
+    moonLight, moonLightIntensity = 0.8, moonLightHelper;
 
 //////////////////
 /* CREATE SCENE */
@@ -185,56 +188,51 @@ function updateMaterials(type) {
     currentMaterial = type;
 }
 
-function createTerrain() {
-
-    const terrainGeometry = new THREE.PlaneGeometry(25000, 25000, 100, 100);
-
-    let image = new Image();
-    image.src = "textures/field.png";
-    image.onload = function () {
-        const height = image.height;
-        const width = image.width;
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = width * 10;
-        canvas.height = height * 10;
-
-        // Since three js doesn't allow textures and heightmaps to have independent repeat settings, we are using a canvas
-        // to draw the texture as intended, which has the added benefit of allowing us to rotate the textures, making them
-        // even more seamless
-        for (let x = 0; x < 10; x++) {
-            for (let y = 0; y < 10; y++) {
-                // Add random rotation in multiples of 90 degrees and translation
-                const rotation = (Math.floor(Math.random() * 4)) * 90;
-                ctx.save();
-                // Translate to the center of the image and apply the rotation
-                ctx.translate((x * width) + (width / 2), (y * height) + (height / 2));
-                ctx.rotate((Math.PI / 180) * rotation);
-                // Draw the image and restore the saved state of the context
-                ctx.drawImage(image, -(width / 2), -(height / 2), width, height);
-                ctx.restore();
-            }
+function createTerrainTexture() {
+    const textureSize = 256;
+    let textureCanvas = generateFieldTexture(textureSize);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = textureSize * 10;
+    canvas.height = textureSize * 10;
+    // Since three js doesn't allow textures and heightmaps to have independent repeat settings, we are using a canvas
+    // to draw the texture as intended, which has the added benefit of allowing us to rotate the textures, making them
+    // even more seamless
+    for (let x = 0; x < 10; x++) {
+        for (let y = 0; y < 10; y++) {
+            // Add random rotation in multiples of 90 degrees and translation
+            const rotation = (Math.floor(Math.random() * 4)) * 90;
+            ctx.save();
+            // Translate to the center of the image and apply the rotation
+            ctx.translate((x * textureSize) + (textureSize / 2), (y * textureSize) + (textureSize / 2));
+            ctx.rotate((Math.PI / 180) * rotation);
+            // Draw the image and restore the saved state of the context
+            ctx.drawImage(textureCanvas, -(textureSize / 2), -(textureSize / 2), textureSize, textureSize);
+            ctx.restore();
         }
-        terrainTexture = new THREE.CanvasTexture(canvas);
-        disMap = new THREE.TextureLoader().setPath("textures").load("/heightmap.png");
-        disScale = 500;
-
-        const terrainMaterial = new THREE.MeshPhongMaterial({ color: colors.fog, displacementMap: disMap,
-            displacementScale: disScale, side: THREE.DoubleSide, map: terrainTexture });
-
-        terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
-        terrain.rotation.x = -Math.PI/2;
-        terrain.receiveShadow = true;
-        ufoScene.add(terrain);
     }
+    return new THREE.CanvasTexture(canvas);
+}
+
+function createTerrain() {
+    const terrainGeometry = new THREE.PlaneGeometry(25000, 25000, 100, 100);
+    disMap = new THREE.TextureLoader().setPath("textures").load("/heightmap.png");
+    disScale = 500;
+    terrainTexture = createTerrainTexture();
+    const terrainMaterial = new THREE.MeshPhongMaterial({ color: colors.fog, displacementMap: disMap,
+        displacementScale: disScale, side: THREE.DoubleSide, map: terrainTexture });
+    terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
+    terrain.rotation.x = -Math.PI/2;
+    terrain.receiveShadow = true;
+    ufoScene.add(terrain);
 }
 
 function createSkydome() {
 
     const skydomeGeometry = new THREE.SphereGeometry(12500, 64, 64);
-    const skydomeTexture = new THREE.TextureLoader().setPath('textures').load('/sky.png');
+    const skydomeTexture = generateSkyTexture(4096);
     const skydomeMaterial = new THREE.MeshBasicMaterial({ map: skydomeTexture, side: THREE.DoubleSide });
-    const skydome = new THREE.Mesh(skydomeGeometry, skydomeMaterial);
+    skydome = new THREE.Mesh(skydomeGeometry, skydomeMaterial);
     ufoScene.add(skydome);
 }
 
@@ -354,14 +352,14 @@ function update(delta) {
         if (keys[k] === true) {
             switch (k) {
                 // Camera Controls (keys 1, C)
-                case '49': // 1
-                    console.log('1');
+                /*case '49': // 1 mistake in the project specification
+                    debug('1');
                     camera = cameras.persp;
                     keys[k] = false;
-                    break;
+                    break;*/
                 case '67': // C
                 case '99': // c
-                    console.log('C');
+                    debug('C');
                     controls.enabled = !controls.enabled;
                     controls.object = camera;
                     controls.update();
@@ -369,19 +367,19 @@ function update(delta) {
                     break;
                 // Visual Representation Controls (keys 7, 8, 9)
                 case '55': // 7
-                    console.log('7');
+                    debug('7');
                     edgesMaterial.visible = !edgesMaterial.visible;
                     keys[k] = false;
                     break;
                 case '56': // 8
-                    console.log('8');
+                    debug('8');
                     pointLightHelper.visible = !pointLightHelper.visible;
                     spotLightHelper.visible = !spotLightHelper.visible;
                     moonLightHelper.visible = !moonLightHelper.visible;
                     keys[k] = false;
                     break;
                 case '57': // 9
-                    console.log('9');
+                    debug('9');
                     if (!isAxesHelperVisible) {
                         ufoScene.add(axesHelper);
                         isAxesHelperVisible = true;
@@ -407,19 +405,19 @@ function update(delta) {
                 // Light Controls (keys D, P, S)
                 case '68': // D
                 case '100': // d
-                    console.log('D');
+                    debug('D');
                     moonLight.intensity = moonLight.intensity === 0 ? moonLightIntensity : 0;
                     keys[k] = false;
                     break;
                 case '80': // P
                 case '112': // p
-                    console.log('P');
+                    debug('P');
                     spotLight.intensity = spotLight.intensity === 0 ? spotLightIntensity : 0;
                     keys[k] = false;
                     break;
                 case '83': // S
                 case '115': // s
-                    console.log('S');
+                    debug('S');
                     for (let light of pointLights)
                         light.intensity = light.intensity === 0 ? pointLightIntensity : 0;
                     keys[k] = false;
@@ -427,26 +425,38 @@ function update(delta) {
                 // Material Controls (keys Q, W, E, R)
                 case '81': // Q
                 case '113': // q
-                    console.log('Q');
+                    debug('Q');
                     updateMaterials('lambert');
                     keys[k] = false;
                     break;
                 case '87': // W
                 case '119': // w
-                    console.log('W');
+                    debug('W');
                     updateMaterials('phong');
                     keys[k] = false;
                     break;
                 case '69': // E
                 case '101': // e
-                    console.log('E');
+                    debug('E');
                     updateMaterials('toon');
                     keys[k] = false;
                     break;
                 case "82": // R
                 case "114": // r
-                    console.log('R');
+                    debug('R');
                     updateMaterials('basic');
+                    keys[k] = false;
+                    break;
+                case "49": // 1
+                    debug('1');
+                    terrainTexture = createTerrainTexture();
+                    terrain.material.map = terrainTexture;
+                    keys[k] = false;
+                    break;
+                case "50": // 2
+                    debug('2');
+                    const skyTexture = generateSkyTexture(4096);
+                    skydome.material.map = skyTexture;
                     keys[k] = false;
                     break;
             }
@@ -565,4 +575,8 @@ function moveUFO(axis, speed, delta) {
 function rotateUFO(rotationSpeed, delta) {
 
     body3D.rotateOnWorldAxis(rAxes.y, rotationSpeed * delta);
+}
+
+function debug(text) {
+    if (debugMode) console.log(text);
 }
