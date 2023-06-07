@@ -4,8 +4,9 @@
     <meta charset=”utf-8”>
     <title>Computer Graphics</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.2.0/github-markdown.min.css">
 </head>
-<body>
+<body class="mainBody">
     <div class="container">
         <h1>Select a Scene</h1>
         <ul class = "menu">
@@ -13,6 +14,26 @@
             <li><a href="textures.html">Texture Generation</a></li>
             <li><a href="ufo.html">UFO</a></li>
         </ul>
+
+    <div id="wrapper">
+
+    <div class="markdown-container">
+            <div id="markdown-content" class="markdown-body"></div>
+    </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/1.4.0/showdown.min.js"></script>
+        <script>
+            // Load and render the Markdown file
+            fetch('README.md')
+                .then(response => response.text())
+                .then(markdown => {
+                    const converter = new showdown.Converter();
+                    // set table output to true
+                    converter.setOption('tables', 'true');
+                    const html = converter.makeHtml(markdown);
+                    document.getElementById('markdown-content').innerHTML = html;
+                });
+        </script>
+    </div>
     </div>
 </body>
 </html>

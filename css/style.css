@@ -1,26 +1,37 @@
 body {
-    background-color: #f2f2f2;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
     margin: 0;
+}
+
+.mainBody {
+    background-image: url('/textures/background.png');
+    background-repeat: no-repeat;
+    background-size: cover;
+    display: flex;
+    margin: 0;
+    padding: 50px 0;
+    overflow: auto;
+}
+
+.ufo-scene {
     overflow: hidden;
 }
 
 .container {
-    background-color: rgba(255, 255, 255, 0.8);
+    background-color: rgba(111, 111, 111, 0.8););
     border-radius: 8px;
     padding: 32px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-    font-family: Helvetica;
+    font-family: Helvetica, sans-serif;
 }
 
 h1 {
     text-align: center;
     font-size: 24px;
     margin-bottom: 16px;
-    color: #333;
+    color: #ddd;
 }
 
 .menu {
@@ -37,15 +48,15 @@ h1 {
 .menu li a {
     display: block;
     padding: 8px 16px;
-    background-color: #e0e0e0;
-    color: #333;
+    background-color: #343434;
+    color: #ddd;
     text-decoration: none;
     border-radius: 4px;
     transition: background-color 0.2s ease;
 }
 
 .menu li a:hover {
-    background-color: #ccc;
+    background-color: #454545;
 }
 
 #goBackButton {
@@ -53,4 +64,20 @@ h1 {
     top: 16px;
     left: 16px;
     z-index: 1;
+}
+
+.markdown-container {
+    box-sizing: border-box;
+    background-color: #111;
+    border-radius: 8px;
+    margin-top: 16px;
+    padding: 30px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    font-family: Segoe UI;
+    /*add more inner padding in between the text and inner border*/
+}
+
+#wrapper {
+    float: left;
+    width: 600px;
 }
