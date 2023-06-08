@@ -88,6 +88,7 @@ function createMesh(type, parameters, material, parent, x = 0, y = 0, z = 0, rAx
 //////////////////////////////////
 
 function generateFieldTexture(size, exp = false) {
+
     const canvas = document.createElement('canvas');
     canvas.width = size;
     canvas.height = size;
@@ -126,12 +127,46 @@ function generateFieldTexture(size, exp = false) {
         ctx.fill();
         circles.push({x: x, y: y, r: r});
     }
-    if (exp) exportTexture(canvas, 'field.png');
+    if (exp)
+        exportTexture(canvas, 'field.png');
     return canvas;
 }
 
-function generateSkyTexture(size, exp) {
-    //if size is too small, throw error and return
+function generateTerrainTexture(size, exp = false) {
+
+    // If size is too small, throw error and return
+    if (size * 10 < 256) {
+        console.error("Terrain texture size too small. Minimum size is 256.");
+        return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = size * 10;
+    canvas.height = size * 10;
+    const ctx = canvas.getContext('2d');
+    let texture = generateFieldTexture(size);
+    // Since three js does not allow textures and heightmaps to have independent repeat settings, we are using a canvas
+    // to draw the texture as intended, which allows us to rotate the textures, making them even more seamless
+    for (let x = 0; x < 10; x++) {
+        for (let y = 0; y < 10; y++) {
+            // Add random rotation in multiples of 90 degrees and translation
+            const rotation = (Math.floor(Math.random() * 4)) * 90;
+            ctx.save();
+            // Translate to the center of the image and apply the rotation
+            ctx.translate((x * size) + (size / 2), (y * size) + (size / 2));
+            ctx.rotate((Math.PI / 180) * rotation);
+            // Draw the image and restore the saved state of the context
+            ctx.drawImage(texture, -(size / 2), -(size/ 2), size, size);
+            ctx.restore();
+        }
+    }
+    if (exp)
+        exportTexture(canvas, 'terrain.png');
+    return canvas;
+}
+
+function generateSkyTexture(size, exp = false) {
+
+    // If size is too small, throw error and return
     if (size < 256) {
         console.error("Sky texture size too small. Minimum size is 256.");
         return;
@@ -148,9 +183,7 @@ function generateSkyTexture(size, exp) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     // Stars color: white
     ctx.fillStyle = '#ffffff';
-    // Generate 500 stars
-    // canvas is usually so large that it doesn't matter if stars overlap
-    // in real life, stars may overlap, the universe doesn't care :)
+    // Generate 500 stars (it does not matter if stars overlap)
     for (let i = 0; i < 500; i++) {
         const x = Math.random() * canvas.width;
         const y = Math.random() * canvas.height;
@@ -165,8 +198,9 @@ function generateSkyTexture(size, exp) {
         ctx.arc(x, y, r, 0, Math.PI * 2);
         ctx.fill();
     }
-    if (exp) exportTexture(canvas, 'sky.png');
-    return new THREE.CanvasTexture(canvas);
+    if (exp)
+        exportTexture(canvas, 'sky.png');
+    return canvas;
 }
 
 function exportTexture(canvas, filename) {

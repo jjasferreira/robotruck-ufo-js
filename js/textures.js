@@ -14,6 +14,8 @@ let fieldScene, skyScene;
 let scenes = {field : true, sky : false}
 let texRenderer;
 
+let fieldTextureSize = 256, skyTextureSize = 4096;
+
 // Cameras
 let textureCamera;
 
@@ -24,7 +26,7 @@ let textureCamera;
 function createFieldScene() {
 
     fieldScene = new THREE.Scene();
-    const canvas = generateFieldTexture(256, true);
+    const canvas = generateFieldTexture(fieldTextureSize, true);
     const texture = new THREE.CanvasTexture(canvas);
     const plane = new THREE.PlaneGeometry(10, 10);
     const material = new THREE.MeshBasicMaterial({map: texture});
@@ -35,7 +37,8 @@ function createFieldScene() {
 function createSkyScene() {
 
     skyScene = new THREE.Scene();
-    const texture = generateSkyTexture(4096, true);
+    const canvas = generateSkyTexture(skyTextureSize, true);
+    const texture = new THREE.CanvasTexture(canvas);
     const plane = new THREE.PlaneGeometry(10, 10);
     const material = new THREE.MeshBasicMaterial({map: texture});
     const mesh = new THREE.Mesh(plane, material);

@@ -17,13 +17,12 @@
 //////////////////////
 /* GLOBAL VARIABLES */
 //////////////////////
-const debugMode = false;
 
 let ufoScene, ufoRenderer;
 
 let previousTime = 0, currentTime = 0;
 
-let currentMaterial;
+let debugMode = false;
 
 // Cameras
 let camera;
@@ -34,6 +33,7 @@ let controls;
 // Keys
 let keys = {};
 
+// All meshes except for the terrain and sky
 let meshes = [];
 
 // Colors, materials and geometry edges
@@ -41,6 +41,7 @@ const colors = {
     fog: 0x656597, darkgrey: 0x404040, lightblue: 0x3492da, darkorange: 0xad5b28, bistre: 0x302514, darkgreen: 0x035f53,
     lightyellow: 0xffffb3, goldenyellow: 0xf7d842, grey: 0x999999
 };
+let currentMaterial;
 let m = {};
 let edgesMaterial;
 
@@ -50,13 +51,13 @@ let isAxesHelperVisible = false;
 let rAxes = {};
 
 // Terrain's variables
-let terrain, disMap, disScale, terrainTexture;
+let terrain, terrainMaterial, fieldTextureSize = 256;
 
-let skydome;
+// Sky's variables
+let skydome, skydomeMaterial, skyTextureSize = 4096;
 
 // UFO's Object3Ds
 let body3D, cockpit3D, baubles3D, cylinder3D;
-let pointLights = [];
 
 // Movements and Rotations
 let movementSpeed = 40;
@@ -81,6 +82,7 @@ const d = {
 let pointLightIntensity = 1.5, pointLightHelper,
     spotLight, spotLightIntensity = 8.5, spotLightHelper,
     moonLight, moonLightIntensity = 0.8, moonLightHelper;
+let pointLights = [];
 
 //////////////////
 /* CREATE SCENE */
@@ -93,8 +95,7 @@ function createScene() {
 
     createAmbientLight(0xffffff, 0.1);
 
-    currentMaterial = 'phong';
-    createMaterials(currentMaterial);
+    createMaterials();
     createTerrain();
     createSkydome();
     createUFO(-1000, 2500, 500);
@@ -122,34 +123,27 @@ function createAmbientLight(color, intensity) {
 /* CREATE COMPONENTS */
 ///////////////////////
 
-function createMaterials(type) {
+function createMaterials() {
 
-    switch (type) {
-        case 'standard':
-            for (const [name, color] of Object.entries(colors))
-                m[name] = new THREE.MeshStandardMaterial({ color: color, wireframe: false });
-            m.cockpitMaterial = new THREE.MeshStandardMaterial({ color: colors.lightblue, wireframe: false, transparent: true, opacity: 0.5 });
-            m.baubleMaterial = new THREE.MeshStandardMaterial({ color: colors.darkorange, wireframe: false, transparent: true, opacity: 0.5 });
-            break;
-        case 'lambert':
-            for (const [name, color] of Object.entries(colors))
-                m[name] = new THREE.MeshLambertMaterial({ color: color, wireframe: false });
-            m.cockpitMaterial = new THREE.MeshLambertMaterial({ color: colors.lightblue, wireframe: false, transparent: true, opacity: 0.5 });
-            m.baubleMaterial = new THREE.MeshLambertMaterial({ color: colors.darkorange, wireframe: false, transparent: true, opacity: 0.5 });
-            break;
-        case 'phong':
-            for (const [name, color] of Object.entries(colors))
-                m[name] = new THREE.MeshPhongMaterial({ color: color, wireframe: false });
-            m.cockpitMaterial = new THREE.MeshPhongMaterial({ color: colors.lightblue, wireframe: false, transparent: true, opacity: 0.5 });
-            m.baubleMaterial = new THREE.MeshPhongMaterial({ color: colors.darkorange, wireframe: false, transparent: true, opacity: 0.5 });
-            break;
-        case 'cartoon':
-            for (const [name, color] of Object.entries(colors))
-                m[name] = new THREE.MeshToonMaterial({ color: color, wireframe: false });
-            m.cockpitMaterial = new THREE.MeshToonMaterial({ color: colors.lightblue, wireframe: false, transparent: true, opacity: 0.5 });
-            m.baubleMaterial = new THREE.MeshToonMaterial({ color: colors.darkorange, wireframe: false, transparent: true, opacity: 0.5 });
-            break;
-    }
+    // Color Phong Materials
+    currentMaterial = 'phong';
+    for (const [name, color] of Object.entries(colors))
+        m[name] = new THREE.MeshPhongMaterial({ color: color, wireframe: false });
+    m.cockpitMaterial = new THREE.MeshPhongMaterial({ color: colors.lightblue, wireframe: false, transparent: true, opacity: 0.5 });
+    m.baubleMaterial = new THREE.MeshPhongMaterial({ color: colors.darkorange, wireframe: false, transparent: true, opacity: 0.5 });
+
+    // Texture Phong Materials
+    const displacementMap = new THREE.TextureLoader().setPath("textures").load("/heightmap.png");
+    const displacementScale = 500;
+    const normalMap = new THREE.TextureLoader().setPath("textures").load("/normalmap.png");
+    const terrainTexture = new THREE.CanvasTexture(generateTerrainTexture(fieldTextureSize));
+    terrainMaterial = new THREE.MeshPhongMaterial({
+        color: colors.fog, displacementMap: displacementMap, displacementScale: displacementScale,
+        normalMap: normalMap, side: THREE.DoubleSide, map: terrainTexture
+    });
+    const skydomeTexture = new THREE.CanvasTexture(generateSkyTexture(skyTextureSize));
+    skydomeMaterial = new THREE.MeshPhongMaterial({ map: skydomeTexture, side: THREE.DoubleSide });
+
     // Edges material
     edgesMaterial = new THREE.LineBasicMaterial({ color: colors.grey, visible: false });
 }
@@ -166,61 +160,26 @@ function updateMaterials(type) {
         switch (type) {
             case 'lambert':
                 mesh.material = new THREE.MeshLambertMaterial({ color: mc, wireframe: mw, transparent: mt, opacity: mo });
-                terrain.material = new THREE.MeshLambertMaterial({ color: colors.fog, displacementMap: disMap,
-                    displacementScale: disScale, side: THREE.DoubleSide, map: terrainTexture });
                 break;
             case 'phong':
                 mesh.material = new THREE.MeshPhongMaterial({ color: mc, wireframe: mw, transparent: mt, opacity: mo });
-                terrain.material = new THREE.MeshPhongMaterial({ color: colors.fog, displacementMap: disMap,
-                    displacementScale: disScale, side: THREE.DoubleSide, map: terrainTexture });
                 break;
             case 'toon':
                 mesh.material = new THREE.MeshToonMaterial({ color: mc, wireframe: mw, transparent: mt, opacity: mo });
-                terrain.material = new THREE.MeshToonMaterial({ color: colors.fog, displacementMap: disMap,
-                    displacementScale: disScale, side: THREE.DoubleSide, map: terrainTexture });
                 break;
             case 'basic':
                 mesh.material = new THREE.MeshBasicMaterial({ color: mc, wireframe: mw, transparent: mt, opacity: mo });
-                terrain.material = new THREE.MeshBasicMaterial({ color: colors.fog, displacementMap: disMap,
-                    displacementScale: disScale, side: THREE.DoubleSide, map: terrainTexture });
+                break;
+            default:
+                break;
         }
     }
     currentMaterial = type;
 }
 
-function createTerrainTexture() {
-    const textureSize = 256;
-    let textureCanvas = generateFieldTexture(textureSize);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = textureSize * 10;
-    canvas.height = textureSize * 10;
-    // Since three js doesn't allow textures and heightmaps to have independent repeat settings, we are using a canvas
-    // to draw the texture as intended, which has the added benefit of allowing us to rotate the textures, making them
-    // even more seamless
-    for (let x = 0; x < 10; x++) {
-        for (let y = 0; y < 10; y++) {
-            // Add random rotation in multiples of 90 degrees and translation
-            const rotation = (Math.floor(Math.random() * 4)) * 90;
-            ctx.save();
-            // Translate to the center of the image and apply the rotation
-            ctx.translate((x * textureSize) + (textureSize / 2), (y * textureSize) + (textureSize / 2));
-            ctx.rotate((Math.PI / 180) * rotation);
-            // Draw the image and restore the saved state of the context
-            ctx.drawImage(textureCanvas, -(textureSize / 2), -(textureSize / 2), textureSize, textureSize);
-            ctx.restore();
-        }
-    }
-    return new THREE.CanvasTexture(canvas);
-}
-
 function createTerrain() {
+
     const terrainGeometry = new THREE.PlaneGeometry(25000, 25000, 100, 100);
-    disMap = new THREE.TextureLoader().setPath("textures").load("/heightmap.png");
-    disScale = 500;
-    terrainTexture = createTerrainTexture();
-    const terrainMaterial = new THREE.MeshPhongMaterial({ color: colors.fog, displacementMap: disMap,
-        displacementScale: disScale, side: THREE.DoubleSide, map: terrainTexture });
     terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
     terrain.rotation.x = -Math.PI/2;
     terrain.receiveShadow = true;
@@ -230,8 +189,6 @@ function createTerrain() {
 function createSkydome() {
 
     const skydomeGeometry = new THREE.SphereGeometry(12500, 64, 64);
-    const skydomeTexture = generateSkyTexture(4096);
-    const skydomeMaterial = new THREE.MeshBasicMaterial({ map: skydomeTexture, side: THREE.DoubleSide });
     skydome = new THREE.Mesh(skydomeGeometry, skydomeMaterial);
     ufoScene.add(skydome);
 }
@@ -351,12 +308,65 @@ function update(delta) {
     for (let k in keys) {
         if (keys[k] === true) {
             switch (k) {
-                // Camera Controls (keys 1, C)
-                /*case '49': // 1 mistake in the project specification
+                // Texture Generation Controls (keys 1, 2)
+                case "49": // 1
                     debug('1');
-                    camera = cameras.persp;
+                    const terrainTexture = new THREE.CanvasTexture(generateTerrainTexture(fieldTextureSize));
+                    terrain.material.map = terrainTexture;
                     keys[k] = false;
-                    break;*/
+                    break;
+                case "50": // 2
+                    debug('2');
+                    const skyTexture = new THREE.CanvasTexture(generateSkyTexture(skyTextureSize));
+                    skydome.material.map = skyTexture;
+                    keys[k] = false;
+                    break;
+                // Material Update Controls (keys Q, W, E, R)
+                case '81': // Q
+                case '113': // q
+                    debug('Q');
+                    updateMaterials('lambert');
+                    keys[k] = false;
+                    break;
+                case '87': // W
+                case '119': // w
+                    debug('W');
+                    updateMaterials('phong');
+                    keys[k] = false;
+                    break;
+                case '69': // E
+                case '101': // e
+                    debug('E');
+                    updateMaterials('toon');
+                    keys[k] = false;
+                    break;
+                case "82": // R
+                case "114": // r
+                    debug('R');
+                    updateMaterials('basic');
+                    keys[k] = false;
+                    break;
+                // Light Controls (keys D, P, S)
+                case '68': // D
+                case '100': // d
+                    debug('D');
+                    moonLight.intensity = moonLight.intensity === 0 ? moonLightIntensity : 0;
+                    keys[k] = false;
+                    break;
+                case '80': // P
+                case '112': // p
+                    debug('P');
+                    spotLight.intensity = spotLight.intensity === 0 ? spotLightIntensity : 0;
+                    keys[k] = false;
+                    break;
+                case '83': // S
+                case '115': // s
+                    debug('S');
+                    for (let light of pointLights)
+                        light.intensity = light.intensity === 0 ? pointLightIntensity : 0;
+                    keys[k] = false;
+                    break;
+                // Camera Controls (keys C)
                 case '67': // C
                 case '99': // c
                     debug('C');
@@ -402,62 +412,7 @@ function update(delta) {
                 case '40': // down
                     moveUFO('z', movementSpeed, delta);
                     break;
-                // Light Controls (keys D, P, S)
-                case '68': // D
-                case '100': // d
-                    debug('D');
-                    moonLight.intensity = moonLight.intensity === 0 ? moonLightIntensity : 0;
-                    keys[k] = false;
-                    break;
-                case '80': // P
-                case '112': // p
-                    debug('P');
-                    spotLight.intensity = spotLight.intensity === 0 ? spotLightIntensity : 0;
-                    keys[k] = false;
-                    break;
-                case '83': // S
-                case '115': // s
-                    debug('S');
-                    for (let light of pointLights)
-                        light.intensity = light.intensity === 0 ? pointLightIntensity : 0;
-                    keys[k] = false;
-                    break;
-                // Material Controls (keys Q, W, E, R)
-                case '81': // Q
-                case '113': // q
-                    debug('Q');
-                    updateMaterials('lambert');
-                    keys[k] = false;
-                    break;
-                case '87': // W
-                case '119': // w
-                    debug('W');
-                    updateMaterials('phong');
-                    keys[k] = false;
-                    break;
-                case '69': // E
-                case '101': // e
-                    debug('E');
-                    updateMaterials('toon');
-                    keys[k] = false;
-                    break;
-                case "82": // R
-                case "114": // r
-                    debug('R');
-                    updateMaterials('basic');
-                    keys[k] = false;
-                    break;
-                case "49": // 1
-                    debug('1');
-                    terrainTexture = createTerrainTexture();
-                    terrain.material.map = terrainTexture;
-                    keys[k] = false;
-                    break;
-                case "50": // 2
-                    debug('2');
-                    const skyTexture = generateSkyTexture(4096);
-                    skydome.material.map = skyTexture;
-                    keys[k] = false;
+                default:
                     break;
             }
         }
@@ -494,10 +449,11 @@ function init() {
     cameras.persp = createPerspectiveCamera(750, 750, 750, 0, 0, 0, 1, 50000, 70);
     camera = cameras.persp;
 
-    // Create camera controls and disable them and their arrow keys
+    // Create camera controls and disable them and their arrow keys and debug mode
     controls = new THREE.OrbitControls(camera, ufoRenderer.domElement);
     controls.keys = {LEFT: null, UP: null, RIGHT: null, BOTTOM: null};
-    controls.enabled = true;
+    controls.enabled = false;
+    debugMode = true;
 
     // Create Axes Helper and Rotation Axes to be used
     axesHelper = new THREE.AxesHelper(750);
@@ -577,6 +533,12 @@ function rotateUFO(rotationSpeed, delta) {
     body3D.rotateOnWorldAxis(rAxes.y, rotationSpeed * delta);
 }
 
+////////////////////
+/* DEBUG FUNCTION */
+////////////////////
+
 function debug(text) {
-    if (debugMode) console.log(text);
+
+    if (debugMode)
+        console.log(text);
 }
