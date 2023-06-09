@@ -27,10 +27,8 @@
                 .then(response => response.text())
                 .then(markdown => {
                     const converter = new showdown.Converter();
-                    // set table output to true
                     converter.setOption('tables', 'true');
-                    const html = converter.makeHtml(markdown);
-                    document.getElementById('markdown-content').innerHTML = html;
+                    document.getElementById('markdown-content').innerHTML = converter.makeHtml(markdown);
                 });
         </script>
     </div>

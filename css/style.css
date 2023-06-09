@@ -6,8 +6,7 @@ body {
 }
 
 .mainBody {
-    background-image: url('/textures/background.png');
-    background-repeat: no-repeat;
+    background-color: #171e29;
     background-size: cover;
     display: flex;
     margin: 0;
@@ -20,7 +19,7 @@ body {
 }
 
 .container {
-    background-color: rgba(111, 111, 111, 0.8););
+    background-color: #3d516e;
     border-radius: 8px;
     padding: 32px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
@@ -48,7 +47,7 @@ h1 {
 .menu li a {
     display: block;
     padding: 8px 16px;
-    background-color: #343434;
+    background-color: #1e2736;
     color: #ddd;
     text-decoration: none;
     border-radius: 4px;
@@ -56,7 +55,7 @@ h1 {
 }
 
 .menu li a:hover {
-    background-color: #454545;
+    background-color: #273345;
 }
 
 #goBackButton {
@@ -68,13 +67,11 @@ h1 {
 
 .markdown-container {
     box-sizing: border-box;
-    background-color: #111;
+    background-color: #0d1117;
     border-radius: 8px;
     margin-top: 16px;
     padding: 30px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-    font-family: Segoe UI;
-    /*add more inner padding in between the text and inner border*/
 }
 
 #wrapper {
