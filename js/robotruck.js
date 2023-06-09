@@ -8,7 +8,7 @@
     * - '4' - change camera to isometric view
     * - '5' - change camera to perspective view
     * - 'C' - toggle camera controls
-    * - '6' - toggle wireframe mode
+    * - '6' - toggle wireframe visibility
     * - '7' - toggle edges visibility
     * - '8' - toggle bounding boxes visibility
     * - '9' - toggle axes helper visibility
@@ -361,7 +361,7 @@ function update(delta) {
                     case '97': // a
                         rotateBoots(-rotationSpeed, delta);
                         break;
-                    // Trailer Movement Controls (keys left, up, right, down)
+                    // Trailer Controls (keys left, up, right, down)
                     case '37': // left
                         tentativeBody3DPos = checkMoveTrailer('x', -movementSpeed, delta);
                         executeMoveTrailer(tentativeBody3DPos);
@@ -518,7 +518,7 @@ function onKeyDown(e) {
             controls.object = camera;
             controls.update();
             break;
-        // Visual Representation Controls (keys 6, 7, 8, 9, Z)
+        // Visual Representation (keys 6, 7, 8, 9, Z)
         case 54: // 6
             Object.values(m).forEach(function(material) {
                 material.wireframe = !material.wireframe;
