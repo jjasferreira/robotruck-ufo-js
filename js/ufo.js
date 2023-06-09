@@ -44,6 +44,7 @@ const colors = {
 let currentMaterial;
 let m = {};
 let edgesMaterial;
+let passengerMaterial;
 
 // Axes Helper and all Rotation Axes
 let axesHelper;
@@ -61,7 +62,7 @@ let body3D, cockpit3D, baubles3D, cylinder3D;
 
 // Movements and Rotations
 let movementSpeed = 40;
-let rotationSpeed = 0.04;
+let rotationSpeed = 0.03;
 
 // CorkTree's Object3Ds
 let trunk3D, branch3D, trunkCrown3D, branchCrown3D;
@@ -80,12 +81,16 @@ const d = {
     trunkCrownR: 400, branchCrownR: 250,
     moonR: 200
 };
+let ufoH = 3000;
 
-// UFO's and Moon's lights
-let pointLightIntensity = 1.5, pointLightHelper,
-    spotLight, spotLightIntensity = 8.5, spotLightHelper,
-    moonLight, moonLightIntensity = 0.8, moonLightHelper;
-let pointLights = [];
+// Y Position of the Scene's ground
+let yInitial = -1500;
+
+// Lights
+let ambientLightIntensity = 0.135,
+    pointLights = [], pointLightIntensity = 1.75, pointLightHelper,
+    spotLight, spotLightIntensity = 10.25, spotLightHelper,
+    moonLight, moonLightIntensity = 0.7, moonLightHelper;
 
 //////////////////
 /* CREATE SCENE */
@@ -94,33 +99,52 @@ let pointLights = [];
 function createScene() {
 
     ufoScene = new THREE.Scene();
-    ufoScene.fog = new THREE.FogExp2(colors.fog, 0.00005);
+    ufoScene.fog = new THREE.FogExp2(colors.fog, 0.000035);
 
-    createAmbientLight(0xffffff, 0.15);
+    createAmbientLight(ufoScene, colors.lightyellow, ambientLightIntensity);
 
     createMaterials();
-    createTerrain();
-    createSkydome();
-    createUFO(-1000, 2500, 500);
-    createCorkTree(2000, 50, -3000, 1);
-    createCorkTree(3500, 50, -3000, 1.2);
-    createCorkTree(5000, 50, -3000, 0.8);
-    createMoon();
-    createHouse(0, 160, 3000);
+    createTerrain(0, yInitial, 0);
+    createSkydome(0, yInitial, 0);
+    createUFO(-1000, yInitial + ufoH, 500);
+    createCorkTree(2000, yInitial + 50, -3000, 1);
+    createCorkTree(3500, yInitial + 50, -3000, 1.2);
+    createCorkTree(5000, yInitial + 50, -3000, 0.8);
+    createMoon(-3000, yInitial + 4000, -7000);
+    createHouse(0, yInitial + 160, 3000);
 }
 
 /////////////////////
 /* CREATE LIGHT(S) */
 /////////////////////
 
-function createAmbientLight(color, intensity) {
+function createAmbientLight(parent, color = 0xffffff, intensity = 1) {
 
     const ambientLight = new THREE.AmbientLight(color, intensity);
-    ufoScene.add(ambientLight);
+    parent.add(ambientLight);
     return ambientLight;
 }
 
-// TODO: add other light creation logic to specific functions here
+function createPointLight(parent, color = 0xffffff, intensity = 1, distance = 0, decay = 2) {
+
+    const pointLight = new THREE.PointLight(color, intensity, distance, decay);
+    parent.add(pointLight);
+    return pointLight;
+}
+
+function createSpotLight(parent, color = 0xffffff, intensity = 1, distance = 0, angle = Math.PI/3, penumbra = 0, decay = 2) {
+
+        const spotLight = new THREE.SpotLight(color, intensity, distance, angle, penumbra, decay);
+        parent.add(spotLight);
+        return spotLight;
+}
+
+function createDirectionalLight(parent, color = 0xffffff, intensity = 1) {
+
+        const directionalLight = new THREE.DirectionalLight(color, intensity);
+        parent.add(directionalLight);
+        return directionalLight;
+}
 
 ///////////////////////
 /* CREATE COMPONENTS */
@@ -131,21 +155,24 @@ function createMaterials() {
     // Color Phong Materials
     currentMaterial = 'phong';
     for (const [name, color] of Object.entries(colors))
-        m[name] = new THREE.MeshPhongMaterial({ color: color, wireframe: false });
-    m.cockpitMaterial = new THREE.MeshPhongMaterial({ color: colors.lightblue, wireframe: false, transparent: true, opacity: 0.5 });
-    m.baubleMaterial = new THREE.MeshPhongMaterial({ color: colors.darkorange, wireframe: false, transparent: true, opacity: 0.5 });
+        m[name] = new THREE.MeshPhongMaterial({ color: color });
+    m.cockpitMaterial = new THREE.MeshPhongMaterial({ color: colors.lightblue, opacity: 0.5, transparent: true });
+    m.baubleMaterial = new THREE.MeshPhongMaterial({ color: colors.darkorange, opacity: 0.5, transparent: true });
 
     // Texture Phong Materials
-    const displacementMap = new THREE.TextureLoader().setPath("textures").load("/heightmap.png");
+    const displacementMap = new THREE.TextureLoader().setPath('textures').load('/heightmap.png');
     const displacementScale = 500;
-    const normalMap = new THREE.TextureLoader().setPath("textures").load("/normalmap.png");
+    const normalMap = new THREE.TextureLoader().setPath('textures').load('/normalmap.png');
     const terrainTexture = new THREE.CanvasTexture(generateTerrainTexture(fieldTextureSize));
     terrainMaterial = new THREE.MeshPhongMaterial({
         color: colors.fog, displacementMap: displacementMap, displacementScale: displacementScale,
-        normalMap: normalMap, side: THREE.DoubleSide, map: terrainTexture
+        map: terrainTexture, normalMap: normalMap, side: THREE.DoubleSide
     });
     const skydomeTexture = new THREE.CanvasTexture(generateSkyTexture(skyTextureSize));
     skydomeMaterial = new THREE.MeshPhongMaterial({ map: skydomeTexture, side: THREE.DoubleSide });
+
+    const passengerTexture = new THREE.TextureLoader().setPath('textures').load('/cat.png');
+    passengerMaterial = new THREE.MeshPhongMaterial({ map: passengerTexture });
 
     // Edges material
     edgesMaterial = new THREE.LineBasicMaterial({ color: colors.grey, visible: false });
@@ -156,22 +183,24 @@ function updateMaterials(type) {
     if (currentMaterial === type)
         return;
     for (let mesh of meshes) {
-        const mc = mesh.material.color;
-        const mw = mesh.material.wireframe;
-        const mt = mesh.material.transparent;
-        const mo = mesh.material.opacity;
+        const c = mesh.material.color, e = mesh.material.emissive, m = mesh.material.map;
+        const o = mesh.material.opacity, t = mesh.material.transparent, w = mesh.material.wireframe;
         switch (type) {
             case 'lambert':
-                mesh.material = new THREE.MeshLambertMaterial({ color: mc, wireframe: mw, transparent: mt, opacity: mo });
+                mesh.material = new THREE.MeshLambertMaterial({ color: c, emissive: e, map: m,
+                    opacity: o, transparent: t, wireframe: w });
                 break;
             case 'phong':
-                mesh.material = new THREE.MeshPhongMaterial({ color: mc, wireframe: mw, transparent: mt, opacity: mo });
+                mesh.material = new THREE.MeshPhongMaterial({ color: c, emissive: e, map: m,
+                    opacity: o, transparent: t, wireframe: w });
                 break;
             case 'toon':
-                mesh.material = new THREE.MeshToonMaterial({ color: mc, wireframe: mw, transparent: mt, opacity: mo });
+                mesh.material = new THREE.MeshToonMaterial({ color: c, emissive: e, map: m,
+                    opacity: o, transparent: t, wireframe: w });
                 break;
             case 'basic':
-                mesh.material = new THREE.MeshBasicMaterial({ color: mc, wireframe: mw, transparent: mt, opacity: mo });
+                mesh.material = new THREE.MeshBasicMaterial({ color: c, emissive: e, map: m,
+                    opacity: o, transparent: t, wireframe: w });
                 break;
             default:
                 break;
@@ -180,19 +209,21 @@ function updateMaterials(type) {
     currentMaterial = type;
 }
 
-function createTerrain() {
+function createTerrain(x, y, z) {
 
     const terrainGeometry = new THREE.PlaneGeometry(25000, 25000, 25, 25);
     terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
+    terrain.position.set(x, y, z);
     terrain.rotation.x = -Math.PI/2;
     terrain.receiveShadow = true;
     ufoScene.add(terrain);
 }
 
-function createSkydome() {
+function createSkydome(x, y, z) {
 
     const skydomeGeometry = new THREE.SphereGeometry(12500, 16, 16);
     skydome = new THREE.Mesh(skydomeGeometry, skydomeMaterial);
+    skydome.position.set(x, y, z);
     ufoScene.add(skydome);
 }
 
@@ -200,21 +231,17 @@ function createUFO(x, y, z) {
 
     // Body 3D (parent: scene; children: body, cockpit 3D, baubles 3D)
     body3D = createObject3D(ufoScene, x, y, z);
-    meshes.push(createMesh('ell', [d.bodyR, 1, 3/8, 1], m.darkgrey, body3D));
+    meshes.push(createMesh('ell', [d.bodyR, 16, 16, 1, 3/8, 1], m.darkgrey, body3D));
     // Cockpit 3D (parent: body 3D; children: cockpit, passenger)
     cockpit3D = createObject3D(body3D, 0, d.bodyR/8, 0);
-    meshes.push(createMesh('sph', [d.cockpitR], m.cockpitMaterial, cockpit3D));
-    const passengerTexture = new THREE.TextureLoader().setPath('textures').load('/cat.png');
-    const passengerMaterial = new THREE.MeshBasicMaterial({ map: passengerTexture, wireframe: false });
-    meshes.push(createMesh('ell', [d.passengerR, 1, 5/6, 1], passengerMaterial, cockpit3D, 0, 7*d.passengerR/2, 0));
+    meshes.push(createMesh('sph', [d.cockpitR, 16, 16], m.cockpitMaterial, cockpit3D));
+    meshes.push(createMesh('ell', [d.passengerR, 8, 8, 1, 5/6, 1], passengerMaterial, cockpit3D, 0, 7*d.passengerR/2, 0));
     // Baubles 3D (parent: body 3D; children: baubles, point lights)
     baubles3D = createObject3D(body3D, 0, -7*d.bodyR/40, 0);
     for (let i = 0; i < 12; i++) { // Baubles placed radially in increments of 30 degrees
-        meshes.push(createMesh('sph', [d.baubleR], m.baubleMaterial, baubles3D, 4*d.bodyR/5*Math.sin(i*Math.PI/6), 0, 4*d.bodyR/5*Math.cos(i*Math.PI/6)));
-        const pointLight = new THREE.PointLight(colors.lightyellow, 1, 1000);
+        meshes.push(createMesh('sph', [d.baubleR, 6, 6], m.baubleMaterial, baubles3D, 4*d.bodyR/5*Math.sin(i*Math.PI/6), 0, 4*d.bodyR/5*Math.cos(i*Math.PI/6)));
+        const pointLight = createPointLight(baubles3D, colors.lightyellow, pointLightIntensity, 1000);
         pointLight.position.set(5*d.bodyR/6*Math.sin(i*Math.PI/6), -3*d.bodyR/40, 5*d.bodyR/6*Math.cos(i*Math.PI/6));
-        pointLight.intensity = pointLightIntensity;
-        baubles3D.add(pointLight);
         pointLights.push(pointLight);
         // Point light helper
         pointLightHelper = new THREE.PointLightHelper(pointLight, 10);
@@ -223,16 +250,12 @@ function createUFO(x, y, z) {
     }
     // Cylinder 3D (parent: body 3D; children: cylinder, spot light)
     cylinder3D = createObject3D(body3D, 0, -3*d.bodyR/8, 0);
-    meshes.push(createMesh('cyl', [d.cylinderR, d.cylinderR, d.cylinderH], m.goldenyellow, cylinder3D));
-    spotLight = new THREE.SpotLight(colors.white, 1);
+    meshes.push(createMesh('cyl', [d.cylinderR, d.cylinderR, d.cylinderH, 8], m.goldenyellow, cylinder3D));
+    spotLight = createSpotLight(cylinder3D, colors.white, spotLightIntensity, ufoH-3*d.bodyR/8-d.cylinderH/2+1000, Math.PI/3, 0.1);
     spotLight.position.set(0, -d.cylinderH/2, 0);
-	spotLight.intensity = spotLightIntensity;
-    spotLight.penumbra = 0.1;
     spotLight.castShadow = true;
-    spotLight.distance = y-3*d.bodyR/8-d.cylinderH/2;
-    spotLight.target = createObject3D(cylinder3D, 0, 3*d.bodyR/8-y, 0);
+    spotLight.target = createObject3D(cylinder3D, 0, -d.cylinderH/2-1, 0);
     spotLight.target.updateMatrixWorld();
-    cylinder3D.add(spotLight);
     // Spotlight helper
     spotLightHelper = new THREE.SpotLightHelper(spotLight);
     spotLightHelper.visible = false;
@@ -243,20 +266,20 @@ function createCorkTree(x, y, z, s) {
 
     // Trunk 3D (parent: scene; children: lower trunk, upper trunk, trunk crown 3D, branch 3D)
     trunk3D = createObject3D(ufoScene, x, y, z);
-    meshes.push(createMesh('cyl', [s*d.lowTrunkTopR, s*d.lowTrunkBotR, s*d.lowTrunkH], m.darkorange, trunk3D, 0, s*d.lowTrunkH/2, 0));
-    meshes.push(createMesh('cyl', [s*d.uppTrunkTopR, s*d.uppTrunkBotR, s*d.uppTrunkH], m.bistre, trunk3D, 0, s*(d.lowTrunkH+d.uppTrunkH/2), 0));
+    meshes.push(createMesh('cyl', [s*d.lowTrunkTopR, s*d.lowTrunkBotR, s*d.lowTrunkH, 16], m.darkorange, trunk3D, 0, s*d.lowTrunkH/2, 0));
+    meshes.push(createMesh('cyl', [s*d.uppTrunkTopR, s*d.uppTrunkBotR, s*d.uppTrunkH, 12], m.bistre, trunk3D, 0, s*(d.lowTrunkH+d.uppTrunkH/2), 0));
     // Trunk Crown 3D (parent: trunk 3D; children: trunk crown)
     trunkCrown3D = createObject3D(trunk3D, 0, s*(d.lowTrunkH+d.uppTrunkH), 0);
-    meshes.push(createMesh('ell', [s*d.trunkCrownR, 1, 0.5, 1], m.darkgreen, trunkCrown3D, 0, s*d.trunkCrownR/4, 0));
+    meshes.push(createMesh('ell', [s*d.trunkCrownR, 16, 16, 1, 0.5, 1], m.darkgreen, trunkCrown3D, 0, s*d.trunkCrownR/4, 0));
     // Branch 3D (parent: trunk 3D, children: lower branch, upper branch, branch crown 3D)
     branch3D = createObject3D(trunk3D, 0, 3*s*d.lowTrunkH/4, 0);
-    meshes.push(createMesh('cyl', [s*d.lowBranchTopR, s*d.lowBranchBotR, s*d.lowBranchH], m.darkorange, branch3D, 0, s*d.lowBranchH/2, 0));
-    meshes.push(createMesh('cyl', [s*d.uppBranchTopR, s*d.uppBranchBotR, s*d.uppBranchH], m.bistre, branch3D, 0, s*(d.lowBranchH+d.uppBranchH/2), 0));
+    meshes.push(createMesh('cyl', [s*d.lowBranchTopR, s*d.lowBranchBotR, s*d.lowBranchH, 12], m.darkorange, branch3D, 0, s*d.lowBranchH/2, 0));
+    meshes.push(createMesh('cyl', [s*d.uppBranchTopR, s*d.uppBranchBotR, s*d.uppBranchH, 8], m.bistre, branch3D, 0, s*(d.lowBranchH+d.uppBranchH/2), 0));
     // Branch Crown 3D (parent: branch 3D; children: branch crown)
     branchCrown3D = createObject3D(branch3D, 0, s*(d.lowBranchH+d.uppBranchH), 0);
-    meshes.push(createMesh('ell', [s*d.branchCrownR, 1, 0.5, 1], m.darkgreen, branchCrown3D, 0, s*d.branchCrownR/4, 0));
+    meshes.push(createMesh('ell', [s*d.branchCrownR, 12, 12, 1, 0.5, 1], m.darkgreen, branchCrown3D, 0, s*d.branchCrownR/4, 0));
 
-    // Object3D's Final Rotations
+    // Object3D's Final Random Rotations
     trunk3D.rotateOnWorldAxis(rAxes.y, getRandomAngle(0, 2*Math.PI));
     trunk3D.rotateOnWorldAxis(rAxes.x, getRandomAngle(-Math.PI/16, Math.PI/16));
     trunk3D.rotateOnWorldAxis(rAxes.z, getRandomAngle(-Math.PI/8, 0));
@@ -514,26 +537,23 @@ function createHouse(x, y, z) {
     }
 } 
 
-function createMoon() {
-
-    // Add emissivity to material
-    m.lightyellow.emissive = new THREE.Color(colors.lightyellow);
+function createMoon(x, y, z) {
 
     // Moon 3D (parent: scene; children: moon, moon light)
-    moon3D = createObject3D(ufoScene, -3000, 4000, -7000);
-    meshes.push(createMesh('sph', [d.moonR], m.lightyellow, moon3D, d.moonR, d.moonR, d.moonR));
-    moonLight = new THREE.DirectionalLight(colors.lightyellow, moonLightIntensity);
+    moon3D = createObject3D(ufoScene, x, y, z);
+    const moonMesh = createMesh('sph', [d.moonR, 16, 16], m.lightyellow, moon3D, d.moonR, d.moonR, d.moonR);
+    moonMesh.material.emissive = new THREE.Color(colors.lightyellow);   // Add emissivity to material
+    meshes.push(moonMesh);
+    moonLight = createDirectionalLight(moon3D, colors.lightyellow, moonLightIntensity);
+    moonLight.position.set(d.moonR*2, d.moonR, d.moonR*2);
     moonLight.castShadow = true;
     const value = 8000;
     moonLight.shadow.camera.near = 0.5;
-    moonLight.shadow.camera.far = 15000; // needs to be large enough to cover the scene
+    moonLight.shadow.camera.far = 15000;
     moonLight.shadow.camera.left = -value;
     moonLight.shadow.camera.right = value;
     moonLight.shadow.camera.top = value;
     moonLight.shadow.camera.bottom = -value;
-    // set position of moon light so that moon sphere does not cast shadow
-    moonLight.position.set(d.moonR*2, d.moonR, d.moonR*2);
-    moon3D.add(moonLight);
     // Moon light helper
     moonLightHelper = new THREE.CameraHelper(moonLight.shadow.camera);
     moonLightHelper.visible = false;
@@ -556,13 +576,13 @@ function update(delta) {
         if (keys[k] === true) {
             switch (k) {
                 // Texture Generation Controls (keys 1, 2)
-                case "49": // 1
+                case '49': // 1
                     debug('1');
                     const terrainTexture = new THREE.CanvasTexture(generateTerrainTexture(fieldTextureSize));
                     terrain.material.map = terrainTexture;
                     keys[k] = false;
                     break;
-                case "50": // 2
+                case '50': // 2
                     debug('2');
                     const skyTexture = new THREE.CanvasTexture(generateSkyTexture(skyTextureSize));
                     skydome.material.map = skyTexture;
@@ -587,8 +607,8 @@ function update(delta) {
                     updateMaterials('toon');
                     keys[k] = false;
                     break;
-                case "82": // R
-                case "114": // r
+                case '82': // R
+                case '114': // r
                     debug('R');
                     updateMaterials('basic');
                     keys[k] = false;
@@ -597,20 +617,20 @@ function update(delta) {
                 case '68': // D
                 case '100': // d
                     debug('D');
-                    moonLight.intensity = moonLight.intensity === 0 ? moonLightIntensity : 0;
+                    moonLight.visible = !moonLight.visible;
                     keys[k] = false;
                     break;
                 case '80': // P
                 case '112': // p
                     debug('P');
-                    spotLight.intensity = spotLight.intensity === 0 ? spotLightIntensity : 0;
+                    spotLight.visible = !spotLight.visible;
                     keys[k] = false;
                     break;
                 case '83': // S
                 case '115': // s
                     debug('S');
-                    for (let light of pointLights)
-                        light.intensity = light.intensity === 0 ? pointLightIntensity : 0;
+                    for (let pointLight of pointLights)
+                        pointLight.visible = !pointLight.visible;
                     keys[k] = false;
                     break;
                 // Camera Controls (keys C)
@@ -622,7 +642,14 @@ function update(delta) {
                     controls.update();
                     keys[k] = false;
                     break;
-                // Visual Representation Controls (keys 7, 8, 9)
+                // Visual Representation Controls (keys 6, 7, 8, 9)
+                case '54': // 6
+                    debug('6');
+                    Object.values(m).forEach(function(material) {
+                        material.wireframe = !material.wireframe;
+                    });
+                    keys[k] = false;
+                    break;
                 case '55': // 7
                     debug('7');
                     edgesMaterial.visible = !edgesMaterial.visible;
@@ -646,14 +673,16 @@ function update(delta) {
                     }
                     keys[k] = false;
                     break;
+                // Debug Controls (keys 0)
                 case '48': // 0
                     debug(ufoRenderer.info.render.triangles);
                     keys[k] = false;
                     break;
-                case '37': // left arrow
-                case '39': // right arrow
-                case '38': // up arrow
-                case '40': // down arrow
+                // UFO Movement Controls (keys left, up, right, down)
+                case '37': // left
+                case '38': // up
+                case '39': // right
+                case '40': // down
                     debug('Arrow key pressed');
                     moveUFO(movementSpeed, delta, keys['38'], keys['40'], keys['37'], keys['39']);
                     break;
@@ -691,20 +720,19 @@ function init() {
     document.body.appendChild(VRButton.createButton(ufoRenderer));
 
     // Create all cameras and set default camera
-    cameras.persp = createPerspectiveCamera(6500, 2000, 6000, 0, 0, 0, 1, 30000, 70);
+    cameras.persp = createPerspectiveCamera(6500, yInitial + 2000, 6000, 0, yInitial, 0, 1, 30000, 70);
     camera = cameras.persp;
-
 
     // Create camera controls and disable them and their arrow keys and debug mode
     controls = new THREE.OrbitControls(camera, ufoRenderer.domElement);
     controls.keys = {LEFT: null, UP: null, RIGHT: null, BOTTOM: null};
-    controls.enabled = false;
+    controls.enabled = true;
     debugMode = true;
 
     // TODO: this doesn't work
     ufoRenderer.xr.addEventListener('sessionstart', () => {
         ufoRenderer.xr.getCamera().position.set(10000000, 2000, 6000);
-        console.log("pos", ufoRenderer.xr.getCamera().position);
+        console.log('pos', ufoRenderer.xr.getCamera().position);
     });
 
     // Create Axes Helper and Rotation Axes to be used
@@ -771,18 +799,14 @@ function onKeyUp(e) {
 
 function moveUFO(speed, delta, keyUp, keyDown, keyLeft, keyRight) {
     let adjustment = new THREE.Vector3(0, 0, 0);
-    if (keyUp) {
+    if (keyUp)
         adjustment.add(new THREE.Vector3(0, 0, -1));
-    }
-    if (keyDown) {
+    if (keyDown)
         adjustment.add(new THREE.Vector3(0, 0, 1));
-    }
-    if (keyLeft) {
+    if (keyLeft)
         adjustment.add(new THREE.Vector3(-1, 0, 0));
-    }
-    if (keyRight) {
+    if (keyRight)
         adjustment.add(new THREE.Vector3(1, 0, 0));
-    }
     // normalize the vector to avoid moving faster diagonally
     // set length to speed * delta
     adjustment.normalize();

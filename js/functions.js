@@ -58,14 +58,14 @@ function createMesh(type, parameters, material, parent, x = 0, y = 0, z = 0, rAx
     if (type === 'box')
         geometry = new THREE.BoxGeometry(...parameters);
     else if (type === 'cyl')
-        geometry = new THREE.CylinderGeometry(...parameters, 16);
+        geometry = new THREE.CylinderGeometry(...parameters);
     else if (type === 'sph')
-        geometry = new THREE.SphereGeometry(...parameters, 16, 16);
+        geometry = new THREE.SphereGeometry(...parameters);
     else if (type === 'ell') {
-        geometry = new THREE.SphereGeometry(parameters[0], 16, 16);
-        geometry.applyMatrix(new THREE.Matrix4().makeScale(parameters[1], parameters[2], parameters[3]));
+        geometry = new THREE.SphereGeometry(parameters[0], parameters[1], parameters[2]);
+        geometry.applyMatrix(new THREE.Matrix4().makeScale(parameters[3], parameters[4], parameters[5]));
     }
-    else if (type == 'buf') {
+    else if (type === 'buf') {
         geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.BufferAttribute(parameters[0], 3));
         geometry.setIndex(parameters[1]);
