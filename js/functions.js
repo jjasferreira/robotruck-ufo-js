@@ -65,6 +65,12 @@ function createMesh(type, parameters, material, parent, x = 0, y = 0, z = 0, rAx
         geometry = new THREE.SphereGeometry(parameters[0], 16, 16);
         geometry.applyMatrix(new THREE.Matrix4().makeScale(parameters[1], parameters[2], parameters[3]));
     }
+    else if (type == 'buf') {
+        geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(parameters[0], 3));
+        geometry.setIndex(parameters[1]);
+        geometry.computeVertexNormals();
+    }
     // Create mesh with the specified material
     const mesh = new THREE.Mesh(geometry, material);
     // Create edges and add them to the mesh and to the edges array

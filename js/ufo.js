@@ -285,11 +285,11 @@ function createHouse(x, y, z) {
                          black: 0x000000, greyish:0xd6c3c3, darkbrown:0x53380e,
                          lightbrown:0x8c601b, darkgrey: 0x383a4f, oak:0x311d0a};
     for (const [name, color] of Object.entries(houseColors)) {
-        houseMaterials.push( new THREE.MeshBasicMaterial({ color: color, /*side: THREE.DoubleSide,*/ wireframe: false}));
+        houseMaterials.push( new THREE.MeshPhongMaterial({ color: color, /*side: THREE.DoubleSide,*/ wireframe: false}));
     }
     // settle a unit for simplification purposes
     let u = 80;
-    let blueStripesVertices = 
+    const blueStripesVertices = 
         new Float32Array([0,0,0,             0,0,19*u,          0,2*u,19*u,        0,2*u,0,             //0,1,2,3 bottom stripe and door
                           0,8*u,19*u,        0,0,20*u,          0,8*u,20*u,        0,9*u,19*u,          //4,5,6,7
                           0,8*u,24*u,        0,9*u,24*u,        0,0,23*u,          0,0,24*u,            //8,9,10,11
@@ -318,7 +318,7 @@ function createHouse(x, y, z) {
                           -40*u,6*u,28*u,    -40*u,6*u,28.5*u,  -40*u,5.5*u,28.5*u, -40*u,6*u,25*u ]);  //100,101,102,103
                                   
 
-    let blueStripesIndexes = [0,2,1, 2,0,3, 1,4,5, 5,4,6, 4,7,8, 8,7,9, 10,8,11,
+    const blueStripesIndexes = [0,2,1, 2,0,3, 1,4,5, 5,4,6, 4,7,8, 8,7,9, 10,8,11,
                               12,8,10, 11,13,14, 14,13,15, 17,16,18, 17,18,19,
                               18,20,22, 20,21,22, 21,23,24, 24,23,25, 25,26,27,
                               26,17,27, 29,28,30, 29,30,31, 30,32,34, 32,33,34,
@@ -336,7 +336,7 @@ function createHouse(x, y, z) {
     vertices3D.push(blueStripesVertices);
     indexes3D.push(blueStripesIndexes);
 
-    let wallsVertices = 
+    const wallsVertices = 
         new Float32Array([0,2*u,0,            0,11*u,0,           0,2*u,3.5*u,        0,11*u,3.5*u,      //0,1,2,3 front side
                           0,9.5*u,3.5*u,      0,11*u,19*u,        0,9.5*u,19*u,       0,2*u,19*u,        //4,5,6,7
                           0,9.5*u,15.5*u,     0,2*u,15.5*u,       0,5.5*u,15.5*u,     0,5.5*u,3.5*u,     //8,9,10,11
@@ -353,7 +353,7 @@ function createHouse(x, y, z) {
                           -16.5*u,11*u,32*u,  -23.5*u,4*u,32*u,   -23.5*u,11*u,32*u,  -20*u,18*u,32*u,   //52,53,54,55
                           ]);
 
-    let wallsIndexes = [0,1,2, 2,1,3, 4,3,5, 4,5,6, 6,7,9, 8,6,9, 10,9,11, 9,2,11,
+    const wallsIndexes = [0,1,2, 2,1,3, 4,3,5, 4,5,6, 6,7,9, 8,6,9, 10,9,11, 9,2,11,
                         13,12,14, 13,14,15, 16,5,18, 5,17,18, 19,17,21, 17,20,21,
                         23,22,24, 23,24,25, 26,23,27, 26,27,28, 25,29,30, 30,29,31,
                         28,32,33, 31,28,33, 35,34,36, 35,36,37, 39,38,40, 39,40,41,
@@ -364,13 +364,13 @@ function createHouse(x, y, z) {
     vertices3D.push(wallsVertices);
     indexes3D.push(wallsIndexes);
 
-    let roofVertices = 
+    const roofVertices = 
         new Float32Array([0,11*u,0,         0,11.5*u,0,       -20*u,18*u,0,     -20*u,18.5*u,0,     //0,1,2,3 roof
                           -40*u,11*u,0,     -40*u,11.5*u,0,    0,11*u,32*u,     0,11.5*u,32*u,      //4,5,6,7
                           -20*u,18*u,32*u,  -20*u,18.5*u,32*u, -40*u,11*u,32*u, -40*u,11.5*u,32*u,  //8,9,10,11
                            12*u,11*u,0,     12*u,11*u,32*u,    12*u,11.5*u,0,   12*u,11.5*u,32*u]); //12,13,14,15 roof extension
 
-    let roofIndexes = [1,0,2, 1,2,3, 3,2,4, 3,4,5, 6,7,8, 8,7,9, 8,9,10, 10,9,11,
+    const roofIndexes = [1,0,2, 1,2,3, 3,2,4, 3,4,5, 6,7,8, 8,7,9, 8,9,10, 10,9,11,
                        5,4,10, 5,10,11, 7,1,3, 3,9,7, 9,3,5, 5,11,9, 0,1,12,
                        14,12,1, 7,6,13, 13,15,7, 12,14,13, 13,14,15, 12,0,6, 6,12,13,
                        14,1,7, 7,15,14];
@@ -378,7 +378,7 @@ function createHouse(x, y, z) {
     vertices3D.push(roofVertices);
     indexes3D.push(roofIndexes);
 
-    let windowFrameVertices = 
+    const windowFrameVertices = 
         new Float32Array([0,6*u,5.4*u,        0,6*u,5.6*u,        0,9*u,5.4*u,        0,9*u,5.6*u,           //0,1,2,3 front side
                           0,7.4*u,4*u,        0,7.6*u,4*u,        0,7.4*u,7*u,        0,7.6*u,7*u,           //4,5,6,7
                           0,6*u,13.4*u,       0,6*u,13.6*u,       0,9*u,13.4*u,       0,9*u,13.6*u,          //8,9,10,11
@@ -394,7 +394,7 @@ function createHouse(x, y, z) {
                           -19.8*u,5*u,32*u,   -20.2*u,5*u,32*u,   -19.8*u,10*u,32*u,  -20.2*u,10*u,32*u,     //48,49,50,51 left side
                           -17.5*u,7.3*u,32*u, -17.5*u,7.7*u,32*u, -22.5*u,7.3*u,32*u, -22.5*u,7.7*u,32*u]);  //52,53,54,55
 
-    let windowFrameIndexes = [1,0,2, 1,2,3, 4,5,6, 6,5,7, 9,8,10, 9,10,11, 12,13,14,
+    const windowFrameIndexes = [1,0,2, 1,2,3, 4,5,6, 6,5,7, 9,8,10, 9,10,11, 12,13,14,
                               14,13,15, 16,17,18, 18,17,19, 21,20,22, 21,22,23,
                               24,25,26, 26,25,27, 29,28,30, 29,30,31, 32,33,34,
                               34,33,35, 37,36,38, 37,38,39, 40,41,42, 42,41,43,
@@ -404,7 +404,7 @@ function createHouse(x, y, z) {
     vertices3D.push(windowFrameVertices);
     indexes3D.push(windowFrameIndexes);
 
-    let windowGlassVertices = 
+    const windowGlassVertices = 
         new Float32Array([0,6*u,4*u,          0,6*u,5.4*u,        0,7.4*u,4*u,        0,7.4*u,5.4*u,         //0,1,2,3 front right window
                           0,6*u,5.6*u,        0,6*u,7*u,          0,7.4*u,5.6*u,      0,7.4*u,7*u,           //4,5,6,7
                           0,7.6*u,4*u,        0,7.6*u,5.4*u,      0,9*u,4*u,          0,9*u,5.4*u,           //8,9,10,11
@@ -435,7 +435,7 @@ function createHouse(x, y, z) {
                           -20.2*u,7.7*u,32*u, -22.5*u,7.7*u,32*u, -20.2*u,10*u,32*u,  -22.5*u,10*u,32*u, ]); //108,109,110,111
 
 
-    let windowGlassIndexes = [1,0,2, 1,2,3, 5,4,6, 5,6,7, 9,8,10, 9,10,11, 13,12,14,
+    const windowGlassIndexes = [1,0,2, 1,2,3, 5,4,6, 5,6,7, 9,8,10, 9,10,11, 13,12,14,
                               13,14,15, 17,16,18, 17,18,19, 21,20,22, 21,22,23,
                               25,24,26, 25,26,27, 29,28,30, 29,30,31, 32,33,34,
                               34,33,35, 36,37,38, 38,37,39, 40,41,42, 42,41,43, 
@@ -450,39 +450,39 @@ function createHouse(x, y, z) {
     vertices3D.push(windowGlassVertices);
     indexes3D.push(windowGlassIndexes);
 
-    let outerDoorVertices = 
+    const outerDoorVertices = 
         new Float32Array([0,0,20*u,    0,2*u,20*u,  0,0,23*u,    0,2*u,23*u, //0,1,2,3 outer door
                           0,2*u,21*u,  0,6*u,20*u,  0,6*u,21*u,  0,2*u,22*u, //4,5,6,7
                           0,6*u,23*u,  0,6*u,22*u,  0,8*u,20*u,  0,8*u,23*u, //8,9,10,11
                         ]);
 
-    let outerDoorIndexes = [0,1,2, 2,1,3, 4,1,5, 4,5,6, 3,7,9, 8,3,9, 8,5,10, 10,11,8];
+    const outerDoorIndexes = [0,1,2, 2,1,3, 4,1,5, 4,5,6, 3,7,9, 8,3,9, 8,5,10, 10,11,8];
 
     vertices3D.push(outerDoorVertices);
     indexes3D.push(outerDoorIndexes);
 
-    let innerDoorVertices = 
+    const innerDoorVertices = 
         new Float32Array([0,2*u,21*u,   0,2*u,22*u,  0,6*u,21*u,  0,6*u,22*u]);
 
-    let innerDoorIndexes = [1,0,2, 1,2,3];
+    const innerDoorIndexes = [1,0,2, 1,2,3];
 
     vertices3D.push(innerDoorVertices);
     indexes3D.push(innerDoorIndexes);
 
-    let porchVertices = 
+    const porchVertices = 
         new Float32Array([ 12*u,0,-2*u,    12*u,-1*u,-2*u,   12*u,0,34*u,    12*u,-1*u,34*u,  //0,1,2,3 porch
                           -42*u,0,-2*u,    -42*u,-1*u,-2*u,  -42*u,0,34*u,   -42*u,-1*u,34*u, //4,5,6,7
                            0,0,-2*u,       0,0,34*u,         -40*u,0,-2*u,   -40*u,0,34*u,    //8,9,10,11
                            0,0,0,          -40*u,0,0,        0,0,32*u,       -40*u,0,32*u]);  //12,13,14,15
 
-    let porchIndexes = [3,1,0, 0,2,3, 1,5,0, 4,0,5, 7,3,2, 2,6,7, 5,7,4, 6,4,7,
+    const porchIndexes = [3,1,0, 0,2,3, 1,5,0, 4,0,5, 7,3,2, 2,6,7, 5,7,4, 6,4,7,
                         2,0,8, 2,8,9, 4,6,10, 10,6,11, 12,8,13, 10,13,8, 9,14,15, 
                         15,11,9];
 
     vertices3D.push(porchVertices);
     indexes3D.push(porchIndexes);
 
-    let pillarsVertices = 
+    const pillarsVertices = 
         new Float32Array([0,11*u,0,         0,10.5*u,0,     0,11*u,32*u,     0,10.5*u,32*u,    //0,1,2,3 below roof
                           12*u,11*u,0,      12*u,10.5*u,0,  12*u,11*u,32*u,  12*u,10.5*u,32*u, //4,5,6,7
                           12*u,11*u,3*u,    12*u,0,3*u,     12*u,11*u,5*u,   12*u,0,5*u,         //8,9,10,11 1st pillar
@@ -495,7 +495,7 @@ function createHouse(x, y, z) {
                           10*u,11*u,27*u,   10*u,0,27*u,    10*u,11*u,29*u,  10*u,0,29*u,        //36,37,38,39
                         ]);
 
-    let pillarsIndexes = [1,0,5, 4,5,0, 2,3,7, 7,6,2, 5,4,7, 6,7,4, 1,5,3, 7,3,5,
+    const pillarsIndexes = [1,0,5, 4,5,0, 2,3,7, 7,6,2, 5,4,7, 6,7,4, 1,5,3, 7,3,5,
                           9,8,11, 10,11,8, 12,8,9, 9,13,12, 10,14,11, 15,11,14,
                           12,13,15, 15,14,12, 17,16,19, 18,19,16, 20,16,17,
                           17,21,20, 18,22,19, 23,19,22, 20,21,23, 23,22,20,
@@ -509,12 +509,8 @@ function createHouse(x, y, z) {
 
     for (let i = 0; i < vertices3D.length; i++) {
         let vertices = vertices3D[i];
-        let indexes = indexes3D[i]
-        let geometry = new THREE.BufferGeometry();
-        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-        geometry.setIndex(indexes);
-        geometry.computeVertexNormals();
-        house3D.add(new THREE.Mesh(geometry, houseMaterials[i]));
+        let indexes = indexes3D[i];
+        meshes.push(createMesh('buf', [vertices, indexes], houseMaterials[i], house3D));
     }
 } 
 
