@@ -7,7 +7,7 @@
     * - '7' - toggle edges visibility
     * - '8' - toggle light helper visibility
     * - '9' - toggle axes helper visibility
-    * - '0' - toggle axes visibility
+    * - '0' - display triangles count
     * - 'W' - toggle wireframe
     * - 'L' - toggle light
     * - '←/→' - move UFO on x-axis
@@ -22,7 +22,7 @@ let ufoScene, ufoRenderer;
 
 let previousTime = 0, currentTime = 0;
 
-let debugMode = false;
+let debugMode = true;
 
 // Cameras
 let camera;
@@ -96,16 +96,16 @@ function createScene() {
     ufoScene = new THREE.Scene();
     ufoScene.fog = new THREE.FogExp2(colors.fog, 0.00005);
 
-    createAmbientLight(0xffffff, 0.1);
+    createAmbientLight(0xffffff, 0.15);
 
     createMaterials();
     createTerrain();
     createSkydome();
     createUFO(-1000, 2500, 500);
-    createCorkTree(500, 50, -500, 1);
-    createCorkTree(2000, 50, -500, 1.2);
-    createCorkTree(3500, 50, -500, 0.8);
-    createMoon(); 
+    createCorkTree(2000, 50, -3000, 1);
+    createCorkTree(3500, 50, -3000, 1.2);
+    createCorkTree(5000, 50, -3000, 0.8);
+    createMoon();
     createHouse(0, 160, 3000);
 }
 
@@ -182,7 +182,7 @@ function updateMaterials(type) {
 
 function createTerrain() {
 
-    const terrainGeometry = new THREE.PlaneGeometry(25000, 25000, 100, 100);
+    const terrainGeometry = new THREE.PlaneGeometry(25000, 25000, 25, 25);
     terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
     terrain.rotation.x = -Math.PI/2;
     terrain.receiveShadow = true;
@@ -191,7 +191,7 @@ function createTerrain() {
 
 function createSkydome() {
 
-    const skydomeGeometry = new THREE.SphereGeometry(12500, 64, 64);
+    const skydomeGeometry = new THREE.SphereGeometry(12500, 16, 16);
     skydome = new THREE.Mesh(skydomeGeometry, skydomeMaterial);
     ufoScene.add(skydome);
 }
@@ -233,7 +233,7 @@ function createUFO(x, y, z) {
     spotLight.target = createObject3D(cylinder3D, 0, 3*d.bodyR/8-y, 0);
     spotLight.target.updateMatrixWorld();
     cylinder3D.add(spotLight);
-    // Spot light helper
+    // Spotlight helper
     spotLightHelper = new THREE.SpotLightHelper(spotLight);
     spotLightHelper.visible = false;
     ufoScene.add(spotLightHelper);
@@ -520,17 +520,19 @@ function createMoon() {
     m.lightyellow.emissive = new THREE.Color(colors.lightyellow);
 
     // Moon 3D (parent: scene; children: moon, moon light)
-    moon3D = createObject3D(ufoScene, 5000, 5000, 5000);
+    moon3D = createObject3D(ufoScene, -3000, 4000, -7000);
     meshes.push(createMesh('sph', [d.moonR], m.lightyellow, moon3D, d.moonR, d.moonR, d.moonR));
     moonLight = new THREE.DirectionalLight(colors.lightyellow, moonLightIntensity);
     moonLight.castShadow = true;
-    const value = 15000;
+    const value = 8000;
     moonLight.shadow.camera.near = 0.5;
-    moonLight.shadow.camera.far = value;
+    moonLight.shadow.camera.far = 15000; // needs to be large enough to cover the scene
     moonLight.shadow.camera.left = -value;
     moonLight.shadow.camera.right = value;
     moonLight.shadow.camera.top = value;
     moonLight.shadow.camera.bottom = -value;
+    // set position of moon light so that moon sphere does not cast shadow
+    moonLight.position.set(d.moonR*2, d.moonR, d.moonR*2);
     moon3D.add(moonLight);
     // Moon light helper
     moonLightHelper = new THREE.CameraHelper(moonLight.shadow.camera);
@@ -644,18 +646,16 @@ function update(delta) {
                     }
                     keys[k] = false;
                     break;
-                // UFO Movement Controls (keys left, up, right, down)
-                case '37': // left
-                    moveUFO('x', -movementSpeed, delta);
+                case '48': // 0
+                    debug(ufoRenderer.info.render.triangles);
+                    keys[k] = false;
                     break;
-                case '38': // up
-                    moveUFO('z', -movementSpeed, delta);
-                    break;
-                case '39': // right
-                    moveUFO('x', movementSpeed, delta);
-                    break;
-                case '40': // down
-                    moveUFO('z', movementSpeed, delta);
+                case '37': // left arrow
+                case '39': // right arrow
+                case '38': // up arrow
+                case '40': // down arrow
+                    debug('Arrow key pressed');
+                    moveUFO(movementSpeed, delta, keys['38'], keys['40'], keys['37'], keys['39']);
                     break;
                 default:
                     break;
@@ -691,14 +691,21 @@ function init() {
     document.body.appendChild(VRButton.createButton(ufoRenderer));
 
     // Create all cameras and set default camera
-    cameras.persp = createPerspectiveCamera(750, 750, 750, 0, 0, 0, 1, 50000, 70);
+    cameras.persp = createPerspectiveCamera(6500, 2000, 6000, 0, 0, 0, 1, 30000, 70);
     camera = cameras.persp;
+
 
     // Create camera controls and disable them and their arrow keys and debug mode
     controls = new THREE.OrbitControls(camera, ufoRenderer.domElement);
     controls.keys = {LEFT: null, UP: null, RIGHT: null, BOTTOM: null};
     controls.enabled = false;
     debugMode = true;
+
+    // TODO: this doesn't work
+    ufoRenderer.xr.addEventListener('sessionstart', () => {
+        ufoRenderer.xr.getCamera().position.set(10000000, 2000, 6000);
+        console.log("pos", ufoRenderer.xr.getCamera().position);
+    });
 
     // Create Axes Helper and Rotation Axes to be used
     axesHelper = new THREE.AxesHelper(750);
@@ -722,7 +729,6 @@ function animate() {
 
     requestAnimationFrame(animate);
     ufoRenderer.setAnimationLoop(render);
-
     currentTime = performance.now();
     let delta = (currentTime - previousTime) / 20;
     previousTime = currentTime;
@@ -763,13 +769,24 @@ function onKeyUp(e) {
 /* MOVEMENT FUNCTIONS */
 ////////////////////////
 
-function moveUFO(axis, speed, delta) {
-
-    let adjustment;
-    if (axis === 'x')
-        adjustment = new THREE.Vector3(speed * delta, 0, 0);
-    else if (axis === 'z')
-        adjustment = new THREE.Vector3(0, 0, speed * delta);
+function moveUFO(speed, delta, keyUp, keyDown, keyLeft, keyRight) {
+    let adjustment = new THREE.Vector3(0, 0, 0);
+    if (keyUp) {
+        adjustment.add(new THREE.Vector3(0, 0, -1));
+    }
+    if (keyDown) {
+        adjustment.add(new THREE.Vector3(0, 0, 1));
+    }
+    if (keyLeft) {
+        adjustment.add(new THREE.Vector3(-1, 0, 0));
+    }
+    if (keyRight) {
+        adjustment.add(new THREE.Vector3(1, 0, 0));
+    }
+    // normalize the vector to avoid moving faster diagonally
+    // set length to speed * delta
+    adjustment.normalize();
+    adjustment.multiplyScalar(speed * delta);
     body3D.position.add(adjustment);
 }
 

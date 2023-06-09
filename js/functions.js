@@ -100,7 +100,7 @@ function generateFieldTexture(size, exp = false) {
     canvas.height = size;
     const ctx = canvas.getContext('2d');
     // Fill canvas background with green
-    ctx.fillStyle = '#0f874b';
+    ctx.fillStyle = '#49b037';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     // Field circles colors: white, yellow, lavender, light-blue
     const colors = ['#ffffff', '#ffffcc', '#d6c2f0', '#a3c9ff'];
