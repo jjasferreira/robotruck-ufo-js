@@ -1,14 +1,16 @@
-# RoboTruck / UFO Project
+# robotruck-ufo-js
 
-A scene with a robot/truck and a trailer and a scene with a UFO in the countryside in ThreeJS as a project for the Computer Graphics course (LEIC-A @ IST 22/23)
+IST Computer Graphics course project (LEIC-A 22/23)
+
+<img src="textures/image.png" alt="Image" width="800"/>
 
 ### Made by
 
-| Name               | IST ID    | E-mail                              |
-|--------------------|-----------|-------------------------------------|
-| João Cardoso       | ist199251 | joao.n.m.cardoso@tecnico.ulisboa.pt |
-| José João Ferreira | ist199259 | josejoaoferreira@tecnico.ulisboa.pt |
-| Tiago Quinteiro    | ist199336 | tiagoquinteiro@tecnico.ulisboa.pt   |
+| Name                                                  | IST ID    | E-mail                              |
+|-------------------------------------------------------|-----------|-------------------------------------|
+| [João Cardoso](https://github.com/joaoncardoso)       | ist199251 | joao.n.m.cardoso@tecnico.ulisboa.pt |
+| [José João Ferreira](https://github.com/jjasferreira) | ist199259 | josejoaoferreira@tecnico.ulisboa.pt |
+| [Tiago Quinteiro](https://github.com/tiago-quinteiro) | ist199336 | tiagoquinteiro@tecnico.ulisboa.pt   |
 
 ### Repository
 
